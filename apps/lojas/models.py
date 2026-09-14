@@ -7,6 +7,12 @@ class Loja(models.Model):
     importado via `manage.py importar_lojas`, não editado à mão aqui."""
 
     nome = models.CharField(max_length=50, unique=True)
+    codigo = models.CharField(
+        max_length=10, blank=True, db_index=True,
+        help_text="Código da unidade de negócio no ERP (ex.: '02'), extraído do nome "
+                   "'Loja N' -- é como o relatório de vendas identifica a loja "
+                   "('Cód. Un. Neg.').",
+    )
     bandeira = models.CharField(max_length=30, blank=True)
     cidade = models.CharField(max_length=60, blank=True)
     bairro = models.CharField(max_length=120, blank=True)

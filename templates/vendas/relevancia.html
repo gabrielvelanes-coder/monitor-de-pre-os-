@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block titulo %}Relevância por Classificação{% endblock %}
+{% block conteudo %}
+
+<form class="filtros" method="get">
+    <div>
+        <label for="de">De (mês)</label>
+        <select name="de" id="de">
+            <option value="">Início</option>
+            {% for m in meses %}<option value="{{ m }}" {% if m == ano_mes_de %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="ate">Até (mês)</label>
+        <select name="ate" id="ate">
+            <option value="">Fim</option>
+            {% for m in meses %}<option value="{{ m }}" {% if m == ano_mes_ate %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="bandeira">Bandeira</label>
+        <select name="bandeira" id="bandeira">
+            <option value="">Todas</option>
+            {% for b in bandeiras %}<option value="{{ b }}" {% if b == bandeira_selecionada %}selected{% endif %}>{{ b }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="cidade">Cidade</label>
+        <select name="cidade" id="cidade">
+            <option value="">Todas</option>
+            {% for c in cidades %}<option value="{{ c }}" {% if c == cidade_selecionada %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+    </div>
+    <button type="submit">Filtrar</button>
+</form>
+
+{% if classificacao_escolhida %}
+    <p><a href="?{% if ano_mes_de %}de={{ ano_mes_de }}&{% endif %}{% if ano_mes_ate %}ate={{ ano_mes_ate }}&{% endif %}{% if bandeira_selecionada %}bandeira={{ bandeira_selecionada }}&{% endif %}{% if cidade_selecionada %}cidade={{ cidade_selecionada }}{% endif %}">← todas as classificações</a></p>
+    <h2>{{ classificacao_escolhida }}</h2>
+    <table>
+        <thead>
+            <tr><th>Produto</th><th class="num">Venda</th><th class="num">Itens</th><th class="num">% da classificação</th><th>Relevância</th></tr>
+        </thead>
+        <tbody>
+            {% for i in itens_detalhe %}
+            <tr>
+                <td>{{ i.descricao }}</td>
+                <td class="num">R$ {{ i.venda|floatformat:2 }}</td>
+                <td class="num">{{ i.itens|floatformat:0 }}</td>
+                <td class="num">{{ i.pct_classificacao }}%</td>
+                <td>{% if i.relevante %}<span class="tag caro">relevante</span>{% else %}<span class="tag neutro">cauda</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="cartoes">
+        <div class="cartao">
+            <div class="valor">{{ resumo|length }}</div>
+            <div class="rotulo">Classificações</div>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Classificação</th><th class="num">Venda total</th><th class="num">Itens</th><th class="num">Relevantes</th><th>Item que mais vende</th></tr>
+        </thead>
+        <tbody>
+            {% for r in resumo %}
+            <tr>
+                <td><a href="?classificacao={{ r.classificacao|urlencode }}{% if ano_mes_de %}&de={{ ano_mes_de }}{% endif %}{% if ano_mes_ate %}&ate={{ ano_mes_ate }}{% endif %}{% if bandeira_selecionada %}&bandeira={{ bandeira_selecionada }}{% endif %}{% if cidade_selecionada %}&cidade={{ cidade_selecionada }}{% endif %}">{{ r.classificacao }}</a></td>
+                <td class="num">R$ {{ r.venda_total|floatformat:2 }}</td>
+                <td class="num">{{ r.n_itens }}</td>
+                <td class="num">{{ r.n_relevantes }}</td>
+                <td>{{ r.top_item }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% endblock %}

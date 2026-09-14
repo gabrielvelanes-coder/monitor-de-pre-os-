@@ -33,9 +33,12 @@ class Command(BaseCommand):
 
         criadas, atualizadas = 0, 0
         for l in cfg.get("lojas", []):
+            digitos = "".join(ch for ch in l["nome"] if ch.isdigit())
+            codigo = digitos.zfill(2) if digitos else ""
             _, created = Loja.objects.update_or_create(
                 nome=l["nome"],
                 defaults={
+                    "codigo": codigo,
                     "bandeira": l.get("bandeira") or "",
                     "cidade": l.get("cidade") or "",
                     "bairro": l.get("bairro") or "",

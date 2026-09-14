@@ -55,7 +55,8 @@
 <header class="topo">
     <h1>🔎 Monitor de Preço de Mercado</h1>
     <nav>
-        <a href="{% url 'monitor:monitor_preco' %}" class="ativo">Monitor de Preço</a>
+        <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
+        <a href="{% url 'vendas:relevancia' %}" {% if request.resolver_match.url_name == 'relevancia' %}class="ativo"{% endif %}>Relevância</a>
         <a href="#" title="Ainda não implementado">Análise de Entradas</a>
     </nav>
 </header>
