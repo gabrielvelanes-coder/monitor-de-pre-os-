@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block titulo %}Monitor de Preço{% endblock %}
+{% block conteudo %}
+
+<div class="cartoes">
+    <div class="cartao">
+        <div class="valor">{{ total }}</div>
+        <div class="rotulo">Itens comparados</div>
+    </div>
+    <div class="cartao alerta">
+        <div class="valor">{{ mais_caros }}</div>
+        <div class="rotulo">Mais caros que a concorrência</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">{{ sem_comparacao }}</div>
+        <div class="rotulo">Sem concorrente na região</div>
+    </div>
+</div>
+
+<form class="filtros" method="get">
+    <div>
+        <label for="bandeira">Bandeira</label>
+        <select name="bandeira" id="bandeira">
+            <option value="">Todas</option>
+            {% for b in bandeiras %}
+                <option value="{{ b }}" {% if b == bandeira_selecionada %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="cidade">Cidade</label>
+        <select name="cidade" id="cidade">
+            <option value="">Todas</option>
+            {% for c in cidades %}
+                <option value="{{ c }}" {% if c == cidade_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit">Filtrar</button>
+</form>
+
+{% if not linhas %}
+    <div class="vazio">Nenhum item captado ainda com esse filtro.</div>
+{% else %}
+<table>
+    <thead>
+        <tr>
+            <th>EAN</th>
+            <th>Produto</th>
+            <th>Cidade</th>
+            <th class="num">Nosso preço</th>
+            <th>Concorrente mais barato</th>
+            <th class="num">Preço concorrente</th>
+            <th class="num">Diferença</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for l in linhas %}
+        <tr>
+            <td>{{ l.ean }}</td>
+            <td>{{ l.titulo|default:"—" }}</td>
+            <td>{{ l.cidade }}</td>
+            <td class="num">R$ {{ l.nosso_preco }}</td>
+            <td>{{ l.concorrente_mais_barato|default:"—" }}{% if l.n_concorrentes > 1 %} <small>(+{{ l.n_concorrentes|add:"-1" }})</small>{% endif %}</td>
+            <td class="num">{% if l.preco_concorrente %}R$ {{ l.preco_concorrente }}{% else %}—{% endif %}</td>
+            <td class="num">
+                {% if l.diferenca_pct == None %}
+                    <span class="tag neutro">sem dado</span>
+                {% elif l.diferenca_pct > 0 %}
+                    <span class="tag caro">+{{ l.diferenca_pct }}%</span>
+                {% else %}
+                    <span class="tag barato">{{ l.diferenca_pct }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}
