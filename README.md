@@ -338,12 +338,21 @@ quebrar, perco tudo?"):**
   push origin main` enviado sem problema (repositório já existia).
   Ainda tem 2 arquivos modificados sem commit lá (`app.py`,
   `catalogo_produtos.py`, não são mudanças dessa sessão) — não mexido.
-- Os bancos de dado de verdade (`db.sqlite3` 146MB, `_precos_continuos.
-  sqlite3` 8MB) **continuam nunca indo pro Git** (é dado, não código,
-  gitignored de propósito) — a única proteção deles é o OneDrive
-  sincronizar direito, o que pode atrasar num banco escrito a cada
-  30min pelo robô. Sem confirmação de que o sync está 100% em dia —
-  ainda uma pendência real, só o CÓDIGO ficou protegido hoje.
+- ~~Bancos de dado sem backup confiável~~ — **resolvido 16/09/26,
+  parcialmente.** Confirmado ao vivo: o ícone do Explorer mostrava
+  "sincronizando" (não o check verde) no `db.sqlite3` bem depois da
+  última mudança — o banco fica sendo reescrito toda hora (toda
+  importação, o robô a cada 30min), então o OneDrive nunca "fecha" o
+  upload dele de verdade. Criado `backup_bancos.py` (monitor-precos):
+  tira uma cópia ESTÁTICA de cada banco via backup API do SQLite
+  (seguro com o banco em uso) em `OneDrive\Área de Trabalho\BACKUPS
+  DB\` — como a cópia parada nunca muda de novo, o OneDrive consegue
+  sincronizar ela até o fim. Mantém os últimos 10 backups de cada,
+  apaga os mais velhos. Testado: integridade OK, contagem de linhas
+  bate com o banco real. **Rodar manual por ora** (`python
+  backup_bancos.py` dentro de `monitor-precos/`) — perguntado ao
+  Gabriel se quer virar Tarefa Agendada do Windows (mesmo padrão do
+  robô) pra rodar sozinho, aguardando resposta.
 
 **Telas ainda não construídas:**
 - **Análise de Entradas** — nem o relatório de origem (histórico de
