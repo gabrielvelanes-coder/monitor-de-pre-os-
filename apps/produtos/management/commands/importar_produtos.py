@@ -109,6 +109,8 @@ class Command(BaseCommand):
 
             if estoque_row is not None:
                 ean = _normalizar_codigo(estoque_row.get("Código de Barras"))
+                if ean.lower() == "nan":
+                    ean = ""  # sem código de barras cadastrado (NaN do pandas) -- não é um EAN de verdade
                 preco_venda = parse_decimal(estoque_row.get("Preço Venda"))
                 preco_ref = parse_decimal(estoque_row.get("Preço Referencial"))
                 fabricante = fabricante or str(estoque_row.get("Fabricante") or "").strip()
