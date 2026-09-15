@@ -121,7 +121,7 @@
                     {{ l.concorrente_mais_barato }}
                     {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
                     <br><span class="dist">
-                        {% if l.distancia_km_concorrente %}{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }} · {% endif %}
+                        {% if l.distancia_precisa_concorrente %}{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }} · {% elif l.distancia_km_concorrente == 0 %}mesma região de {{ l.loja_mais_proxima }} (sem precisão de endereço) · {% endif %}
                         {% if l.dias_atras_concorrente != None %}{% if l.dias_atras_concorrente == 0 %}hoje{% else %}há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}{% endif %}
                     </span>
                 {% else %}
@@ -178,12 +178,20 @@
                                     <td>{{ cl.rede }}</td>
                                     <td>{{ cl.estabelecimento }}{% if cl.bairro %} <span class="dist">({{ cl.bairro }})</span>{% endif %}</td>
                                     <td class="num">R$ {{ cl.preco }}</td>
-                                    <td>{% if cl.distancia_km %}{{ cl.distancia_km }} km de {{ cl.loja_mais_proxima }}{% else %}{{ cl.distancia_centro }} do centro{% endif %}</td>
+                                    <td>
+                                        {% if cl.distancia_precisa %}{{ cl.distancia_km }} km de {{ cl.loja_mais_proxima }}
+                                        {% elif cl.distancia_km == 0 %}<span title="Geocodificação (Nominatim) não resolveu o endereço no nível da rua, só do bairro -- as duas coisas caíram no mesmo ponto no mapa. Não significa que estão coladas de verdade.">mesma região de {{ cl.loja_mais_proxima }}*</span>
+                                        {% else %}{{ cl.distancia_centro }} do centro
+                                        {% endif %}
+                                    </td>
                                     <td>{% if cl.dias_atras == 0 %}hoje{% else %}há {{ cl.dias_atras }} dia{{ cl.dias_atras|pluralize }}{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                        {% if l.tem_distancia_imprecisa %}
+                        <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- não é distância real medida, só indica que caiu na mesma área.</p>
+                        {% endif %}
                     </div>
                 </div>
             </td>

@@ -143,13 +143,26 @@ def montar_comparativo(
                 "bairro": p.bairro,
                 "dias_atras": _dias_atras(p.atualizado_em),
                 "distancia_km": None,
+                "distancia_precisa": None,
                 "loja_mais_proxima": None,
             }
             distancias = [(nome, _distancia_km(lat, lon, p.lat, p.lon)) for nome, lat, lon in lojas_geo]
             distancias = [(nome, km) for nome, km in distancias if km is not None]
             if distancias:
                 nome, km = min(distancias, key=lambda t: t[1])
-                item["distancia_km"], item["loja_mais_proxima"] = km, nome
+                # ACHADO REAL 15/09/26: a Nominatim (geocodificação gratuita)
+                # não resolve endereço no nível da rua pra boa parte dos
+                # endereços de Itabuna/Ilhéus/Ipiaú -- cai pro centroide do
+                # BAIRRO. Resultado: 5 das nossas lojas (e vários
+                # concorrentes) geocodificam pro MESMO ponto exato (bairro
+                # Centro), dando distância 0,0km entre coisas que na
+                # verdade não sabemos a distância real. 0,0km aqui não é
+                # "estão coladas", é "geocodificação sem precisão pra
+                # medir" -- mostrado à parte, não como se fosse um número
+                # confiável.
+                item["distancia_km"] = km
+                item["distancia_precisa"] = km > 0
+                item["loja_mais_proxima"] = nome
             concorrentes_linha.append(item)
         concorrentes_linha.sort(key=lambda x: x["preco"])
 
@@ -179,10 +192,12 @@ def montar_comparativo(
             "concorrente_rede": menor["rede"] if menor else None,
             "preco_concorrente": menor["preco"] if menor else None,
             "distancia_km_concorrente": menor["distancia_km"] if menor else None,
+            "distancia_precisa_concorrente": menor["distancia_precisa"] if menor else None,
             "loja_mais_proxima": menor["loja_mais_proxima"] if menor else None,
             "dias_atras_concorrente": menor["dias_atras"] if menor else None,
             "concorrentes": concorrentes_linha,
             "n_concorrentes": len(concorrentes_linha),
+            "tem_distancia_imprecisa": any(c["distancia_km"] == 0 for c in concorrentes_linha),
             "diferenca_pct": round(diferenca_pct, 1) if diferenca_pct is not None else None,
         })
 
