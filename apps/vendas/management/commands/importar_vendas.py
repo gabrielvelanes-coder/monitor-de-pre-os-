@@ -1,4 +1,5 @@
 import glob
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -13,12 +14,50 @@ from apps.vendas.models import VendaItem
 
 PADRAO_ARQUIVO = "vendas *.xls"
 
-# Posição das colunas no relatório "Análise de Venda por Item" (header na
-# linha 1, linha 0 é o título/período) -- por POSIÇÃO, não pelo nome, porque
-# a coluna '%' se repete 3x (Desconto/Custo/Lucro) e o pandas sufixa cada
-# uma diferente (%, %.1, %.2) de um jeito que não vale a pena confiar.
-COL_LOJA, COL_ANOMES, COL_CODIGO, COL_DESCRICAO, COL_ITENS, COL_VENDA = 0, 1, 2, 3, 4, 5
-COL_DESCONTO, COL_CUSTO, COL_LUCRO = 7, 9, 11
+# BUG REAL encontrado 16/09/26: até aqui a posição das colunas era fixa
+# (0=Loja, 1=Ano-mês, ...) -- funcionou em jan/fev/mar/abr/jul, mas o
+# arquivo de maio reenviado veio com Loja e Ano-mês TROCADOS de posição
+# (mesmo nome de coluna, ordem diferente -- o ERP não exporta sempre na
+# mesma ordem). Se importasse por posição sem conferir, "2026-05" vinha
+# lido como código de loja. Corrigido: detecta a posição de cada coluna
+# pelo NOME (Ano-mês/Cód. Un. Neg./etc. são únicos -- só as 3 colunas
+# "%" repetidas, que a gente nem usa, são ambíguas). A 2ª aba de cada
+# arquivo não tem cabeçalho de texto (é uma continuação por causa do
+# limite de 65.536 linhas do .xls) -- reaproveita a mesma posição
+# detectada na 1ª aba, assumindo mesma ordem de coluna dentro do mesmo
+# arquivo (validado: sempre foi assim nos arquivos vistos até agora).
+_COLUNAS_ESPERADAS = {
+    "loja": "cod. un. neg.",
+    "ano_mes": "ano-mes",
+    "codigo": "cod. barras/etiq.",
+    "descricao": "embalagem",
+    "itens": "itens",
+    "venda": "venda",
+    "desconto": "desconto",
+    "custo": "custo",
+    "lucro": "lucro",
+}
+
+
+def _sem_acento(s) -> str:
+    s = unicodedata.normalize("NFKD", str(s))
+    return "".join(c for c in s if not unicodedata.combining(c)).strip().lower()
+
+
+def _mapear_colunas(colunas) -> dict[str, int]:
+    normalizadas = {_sem_acento(c): i for i, c in enumerate(colunas)}
+    mapa, faltando = {}, []
+    for chave, nome in _COLUNAS_ESPERADAS.items():
+        idx = normalizadas.get(nome)
+        if idx is None:
+            faltando.append(nome)
+        mapa[chave] = idx
+    if faltando:
+        raise CommandError(
+            f"Não achei a(s) coluna(s) {faltando} no relatório -- formato diferente do "
+            f"esperado, confira antes de importar (colunas encontradas: {list(colunas)})."
+        )
+    return mapa
 
 
 class Command(BaseCommand):
@@ -55,20 +94,37 @@ class Command(BaseCommand):
         for caminho in arquivos:
             self.stdout.write(f"Lendo {Path(caminho).name}...")
             planilhas = pd.ExcelFile(caminho).sheet_names
+            mapa_colunas: dict[str, int] | None = None
             for aba in planilhas:
                 df = pd.read_excel(caminho, sheet_name=aba, header=1)
+                if mapa_colunas is None:
+                    # só a 1ª aba do arquivo tem cabeçalho de texto de
+                    # verdade -- a 2ª é continuação sem header (ver
+                    # comentário no topo do arquivo), reaproveita a mesma
+                    # posição detectada aqui.
+                    mapa_colunas = _mapear_colunas(df.columns)
+                c = mapa_colunas
                 objetos = []
                 for row in df.itertuples(index=False, name=None):
-                    cod_loja = str(row[COL_LOJA]).strip().zfill(2)
+                    # BUG REAL encontrado 16/09/26: quando o arquivo tem
+                    # alguma linha em branco/total na coluna de loja, o
+                    # pandas lê a coluna inteira como float (não dá pra
+                    # ter NaN num int) -- "22" vira "22.0", nunca bate com
+                    # o código cadastrado (2 dígitos). Mesmo tratamento
+                    # que já existia pro código de barras/etiqueta.
+                    cod_loja_bruto = str(row[c["loja"]]).strip()
+                    if cod_loja_bruto.endswith(".0"):
+                        cod_loja_bruto = cod_loja_bruto[:-2]
+                    cod_loja = cod_loja_bruto.zfill(2)
                     loja_id = lojas_por_codigo.get(cod_loja)
                     if loja_id is None:
                         sem_loja.add(cod_loja)
                         continue
 
-                    codigo_erp = str(row[COL_CODIGO]).strip()
+                    codigo_erp = str(row[c["codigo"]]).strip()
                     if codigo_erp.endswith(".0"):
                         codigo_erp = codigo_erp[:-2]
-                    ano_mes = str(row[COL_ANOMES]).strip()
+                    ano_mes = str(row[c["ano_mes"]]).strip()
 
                     produto_id = None
                     for chave in chaves_possiveis(codigo_erp):
@@ -80,12 +136,12 @@ class Command(BaseCommand):
 
                     objetos.append(VendaItem(
                         loja_id=loja_id, produto_id=produto_id, codigo_erp=codigo_erp,
-                        descricao=str(row[COL_DESCRICAO] or "").strip(), ano_mes=ano_mes,
-                        itens=parse_decimal(row[COL_ITENS]) or 0,
-                        venda=parse_decimal(row[COL_VENDA]) or 0,
-                        desconto=parse_decimal(row[COL_DESCONTO]) or 0,
-                        custo=parse_decimal(row[COL_CUSTO]) or 0,
-                        lucro=parse_decimal(row[COL_LUCRO]) or 0,
+                        descricao=str(row[c["descricao"]] or "").strip(), ano_mes=ano_mes,
+                        itens=parse_decimal(row[c["itens"]]) or 0,
+                        venda=parse_decimal(row[c["venda"]]) or 0,
+                        desconto=parse_decimal(row[c["desconto"]]) or 0,
+                        custo=parse_decimal(row[c["custo"]]) or 0,
+                        lucro=parse_decimal(row[c["lucro"]]) or 0,
                     ))
 
                 VendaItem.objects.bulk_create(
