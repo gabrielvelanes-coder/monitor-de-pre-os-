@@ -145,3 +145,30 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
   fechada) aparece marcada mas não escondida.
 - Análise de Entradas: nem o relatório nem a regra de "variação relevante"
   foram definidos ainda.
+- **Tema escuro** aplicado globalmente (`templates/base.html`) — Gabriel
+  viu as telas pela 1ª vez e pediu, achou o claro difícil de ver.
+- **Monitor de Preço: identificação de loja/concorrente + filtros novos**
+  (mesma sessão, depois do Gabriel ver a tela): antes só mostrava a REDE
+  ("Pague Menos (+1)"), não dava pra saber qual loja física, nem se o
+  "+1" era outra loja da mesma rede ou outro concorrente.
+  - `manage.py vincular_lojas_captacao` (novo, roda automático no fim de
+    `sincronizar_captacao`): casa `PrecoCaptado` de rede='nossa' com uma
+    `Loja` específica pelo número da rua no endereço (o robô não distingue
+    qual loja é qual, só a bandeira — mas o endereço captado tem número
+    específico). **1.807 de 2.361 registros vinculados (76%)** — resto
+    fica "loja não identificada" (ambíguo ou sem candidata), sem quebrar
+    a tela.
+  - `manage.py geocodificar_concorrentes` (novo, manual — demora minutos,
+    respeita 1 req/s da Nominatim): geocodifica endereço de concorrente,
+    reimplementando a MESMA lógica já validada em
+    `robo_cotacao/mapa_concorrentes.py` (2 bugs reais já corrigidos lá,
+    replicados aqui). **29 de 43 endereços únicos geocodificados.**
+    Distância real loja-nossa x concorrente calculada via haversine a
+    partir da loja vinculada mais barata; sem geocodificação, mostra só a
+    distância até o centro da cidade (que já existia).
+  - Filtro por Subclassificação (nível 3 da árvore mercadológica, novo
+    campo `Produto.subclassificacao`) além da Classificação (nível 2, já
+    existia). Filtro "mais caro / mais barato que a concorrência".
+  - Cada linha agora mostra a lista completa (não só resumo): nossas
+    lojas com preço+distância, concorrentes com nome real+rede+preço+
+    distância — expansível (`<details>` nativo, sem JS).
