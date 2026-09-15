@@ -65,21 +65,58 @@ selecionada.
   `Cód. Un. Neg.` (loja) e `Ano-mês`, diferente do primeiro arquivo que
   foi mandado (`vendas por item 2026.xls`, na raiz de `MONITOR DE
   PRECOS\`, esse sem quebra — não é mais usado).
-  - **ACHADO 14/09/26: só `vendas janeiro.xls` e `vendas julho.xls` têm
-    dado de verdade.** `vendas fevereiro/março/abril/maio/junho.xls` têm
-    nomes diferentes mas são todos a MESMA exportação de janeiro por
-    dentro (`Ano-mês` = '2026-01' nos 5, conferido linha a linha, não só
-    pelo título) — o Gabriel deve ter reexportado sem trocar o filtro de
-    mês no ERP antes de salvar. Só entrou no banco 1 cópia de cada mês
-    real (a constraint `loja+codigo_erp+ano_mes` absorveu as duplicatas
-    silenciosamente) — **156.042 linhas reais** (78.927 jan + 77.115 jul),
-    não os "550.677 linhas jan-jul" que constavam aqui antes. **Pendente:
-    Gabriel reexportar fev/mar/abr/mai/jun corretamente.**
-  - **Faltam agosto e setembro/2026** — setembro só vai até 14/09 (mês em
-    andamento), agosto ainda não foi mandado.
+  - **ACHADO 14/09/26 (resolvido):** `vendas fevereiro/março/abril/maio/
+    junho.xls` do 1º envio eram todos a MESMA exportação de janeiro por
+    dentro (`Ano-mês` = '2026-01' nos 5, conferido linha a linha) —
+    Gabriel reexportou depois.
+  - **ACHADO 15/09/26: 3 dos arquivos reexportados vieram com o
+    relatório ERRADO** (sem a coluna `Ano-mês` — 12 colunas em vez de
+    13, layout do relatório "sem quebra" que não é mais usado). Não é
+    duplicata dessa vez, é FALTA de coluna — importar isso às cegas teria
+    misturado `codigo_erp` com a descrição do produto, porque o
+    importador lê por POSIÇÃO da coluna, não pelo nome. Conferido
+    cabeçalho linha a linha de cada arquivo antes de importar (não só o
+    nome), then descartado o que não servia:
+    - `vendas maio 2026.xls`, `vendas julho 2026.xls`, `vendas agosto
+      2026.xls` — **sem coluna Ano-mês, não importados.**
+    - `vendas fevereiro 2026.xls`, `vendas marco 2026.xls`, `vendas
+      abril 2026.xls` — layout certo, importados com sucesso.
+  - **Estado real hoje: jan/fev/mar/abr/jul importados (386.140 linhas)**
+    — maio, junho e agosto ainda não têm dado utilizável, setembro nunca
+    foi mandado. **Pendente: Gabriel reexportar maio/junho/agosto com o
+    relatório "Análise de Venda por Item" COM quebra por loja e
+    Ano-mês** (mesmo relatório que gerou fev/mar/abr certos dessa vez —
+    conferir que a opção de quebra por mês está marcada antes de
+    exportar).
 - **Pendente:** relatório de histórico de entrada (compra) do ERP, pra
   alimentar a 2ª tela (Análise de Entradas) — ainda não implementada, nem
   a regra de "o que conta como variação relevante" foi definida.
+
+## robo_cotacao (15/09/26, ver README/commits de lá pro detalhe completo)
+
+Achados nessa sessão que afetam diretamente o que chega aqui:
+- **Bug real corrigido: seleção de cidade errada.** `definir_localizacao`
+  sempre clicava na 1ª sugestão de município ao trocar de cidade, mas a
+  lista não vem ordenada por melhor match — digitar "Ipiaú" sugeria
+  `['IBIPITANGA', 'IPIAÚ', 'IPIRÁ', 'PARIPIRANGA']`, então o robô vinha
+  selecionando Ibipitanga (cidade vizinha errada). Pego antes de
+  qualquer captação real de Ipiaú acontecer (a rotação multi-cidade
+  entrou em produção no mesmo dia). Itabuna/Ilhéus não tinham esse
+  problema (sugestão única).
+- **Rodízio de cidade por lote** (era só depois de uma volta completa
+  nos 4305 termos — levaria semanas pra Ilhéus/Ipiaú começarem). Agora
+  intercala Itabuna → Ilhéus → Ipiaú a cada execução (a cada 30min),
+  mesmo volume de interações/hora.
+- **Atalho de sessão por cidade:** a cidade escolhida fica em
+  `sessionStorage` do navegador (não cookie/localStorage), salva depois
+  de definir a localização e reaproveitada na próxima execução daquela
+  cidade (injeta + `page.reload()`) em vez de refazer o fluxo do modal —
+  medido ~8s → ~3s, com fallback automático pro fluxo normal se não
+  bater.
+- Considerado usar proxy pra paralelizar as 3 cidades de verdade (em vez
+  de intercalar) — pesquisado preço real (~R$300-600+/mês), descartado
+  por ora: custo recorrente não compensa pra um robô que já funciona,
+  ainda mais contra um portal do governo.
 
 ## Status (15/09/2026)
 
@@ -92,38 +129,19 @@ selecionada.
     entrou na rotação do robô (só Itabuna/Ilhéus/Ipiaú), então não afetava
     o Monitor de Preço; afetaria uma futura tela de Custo x Margem se
     não tivesse sido marcada.
-- **Rotação de cidade do robô trocada 15/09/26** (Gabriel achou a
-  captação de Ilhéus/Ipiaú baixa demais): antes, cada cidade só entrava
-  na rotação quando uma VOLTA COMPLETA de 4305 termos terminava — no
-  ritmo real (bloqueios intercalados), Ilhéus levaria ~2-3 semanas pra
-  começar a captar QUALQUER coisa. Trocado pra rodízio por lote
-  (Itabuna → Ilhéus → Ipiaú → Itabuna a cada execução), mesmo volume de
-  interações por hora/mesmo risco de bloqueio — agora as 3 cidades
-  recebem dado em paralelo desde a próxima execução agendada, em troca
-  de cada cidade levar ~3x mais tempo pra fechar o catálogo inteiro.
-  Ver comentário em `robo_cotacao/agendador_termos.py`.
-- Captação sincronizada: 10.128 preços (ainda só Itabuna no banco — o
-  efeito da mudança de rotação só aparece nas próximas sincronizações).
-  910 itens já têm nosso preço + concorrência comparável; 383 hoje mais
-  caros que o concorrente mais barato da região (números vão mudar
-  quando Ilhéus/Ipiaú entrarem).
-- **Relevância por Classificação implementada** (`/relevancia/`): dado real
-  hoje é só **jan + jul/26** (ver achado acima), 156.042 linhas, cruzadas
-  com 71.643 produtos do cadastro (44.707 com classificação, usando a
-  versão mais completa dos cadastros — `BASE CADASTRO COM GRUPOS/EAN.xlsx`
-  do projeto de Perdas, bem maiores que as cópias que estavam no
-  robo_cotacao). 20 classificações (nível logo abaixo de "ARVORE NOVA"),
-  cada uma com ranking de itens por % de participação na própria categoria
-  + marcação "relevante" (curva ABC calculada na venda real, até 80%
-  acumulado). Números de venda por classificação **vão mudar** assim que
-  fev-jun entrarem de verdade.
-- **Custo x Margem implementada** (`/custo-margem/`): 3 níveis (por
-  loja/por bandeira/por cidade) a partir de `VendaItem.venda/custo/lucro`,
-  mesmos filtros de mês/bandeira/cidade da tela de Relevância. Tabela "por
-  loja" ordenada com a menor margem primeiro (só destaca, não recomenda
-  nada). Loja 12 (Jaguaquara, fechada) aparece marcada "fechada" mas não é
-  escondida — mantém o histórico de venda visível. Números de hoje (jan+jul
-  reais): venda R$ 18,2M, custo R$ 12,8M, lucro R$ 5,5M, margem geral 29,9%
-  — vão mudar quando fev-jun entrarem de verdade.
+- Captação sincronizada (15/09, depois dos fixes do robô): **10.428
+  preços — Itabuna 10.272, Ilhéus 151, Ipiaú 5.** Ilhéus/Ipiaú acabaram
+  de começar (rodízio por lote entrou em produção hoje) — vão crescer
+  sozinhos a cada execução do robô, sem precisar de nada daqui. 910
+  itens já têm nosso preço + concorrência comparável em Itabuna; 383
+  hoje mais caros que o concorrente mais barato da região (Ilhéus/Ipiaú
+  ainda não têm volume suficiente pra aparecer no comparativo).
+- **Relevância por Classificação** (`/relevancia/`) e **Custo x Margem**
+  (`/custo-margem/`) implementadas — dado real agora é **jan/fev/mar/
+  abr/jul (386.140 linhas)**, não mais só jan+jul. Cruzadas com 71.643
+  produtos do cadastro (44.707 com classificação). Custo x Margem: venda
+  R$ 18,2M, custo R$ 12,8M, lucro R$ 5,5M, margem geral 29,9% (vai mudar
+  de novo quando maio/junho/agosto entrarem certos). Loja 12 (Jaguaquara,
+  fechada) aparece marcada mas não escondida.
 - Análise de Entradas: nem o relatório nem a regra de "variação relevante"
   foram definidos ainda.
