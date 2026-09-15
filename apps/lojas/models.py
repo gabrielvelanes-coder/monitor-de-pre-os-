@@ -21,6 +21,12 @@ class Loja(models.Model):
     razao_social = models.CharField(max_length=200, blank=True)
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
+    ativa = models.BooleanField(
+        default=True,
+        help_text="False para loja fechada (ex.: Loja 12/Jaguaquara, fechada -- "
+                   "confirmado pelo Gabriel em 2026-09-15). Mantida no cadastro "
+                   "por causa do histórico de vendas, mas fora das telas ao vivo.",
+    )
 
     class Meta:
         ordering = ["nome"]

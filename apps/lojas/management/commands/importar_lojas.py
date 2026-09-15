@@ -47,6 +47,7 @@ class Command(BaseCommand):
                     "razao_social": l.get("razao_social") or "",
                     "lat": l.get("lat"),
                     "lon": l.get("lon"),
+                    "ativa": l.get("ativa", True),
                 },
             )
             criadas += created

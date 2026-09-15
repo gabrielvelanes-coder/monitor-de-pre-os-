@@ -81,19 +81,32 @@ selecionada.
   alimentar a 2ª tela (Análise de Entradas) — ainda não implementada, nem
   a regra de "o que conta como variação relevante" foi definida.
 
-## Status (14/09/2026)
+## Status (15/09/2026)
 
-- 25 lojas importadas (bandeira preenchida com o mesmo mapeamento do
-  projeto de Apuração de Trade — Ultra Popular = lojas 6/9/10/11/12/13,
-  Velanes = as demais — **a confirmar com o Gabriel**, é um projeto
-  separado e pode ter mudado).
-  - Loja 12 (Jaguaquara) existe no cadastro mas não foi pedida pro robô
-    pesquisar — só Itabuna/Ilhéus/Ipiaú por ora. Confirmar se entra também.
-- Captação sincronizada: 9.787 preços (só Itabuna até agora — Ilhéus/Ipiaú
-  entram sozinhos conforme o robô completa as próximas passadas, ver
-  `robo_cotacao/agendador_termos.py`). 910 itens já têm nosso preço +
-  concorrência comparável; 383 hoje mais caros que o concorrente mais barato
-  da região.
+- 25 lojas importadas (bandeira confirmada pelo Gabriel: Ultra Popular =
+  lojas 6/9/10/11/12/13, Velanes = as demais — mesmo mapeamento do projeto
+  de Apuração de Trade).
+  - **Loja 12 (Jaguaquara) está fechada** (confirmado pelo Gabriel
+    15/09/26) — campo `Loja.ativa=False` adicionado ao model (mantida no
+    cadastro pelo histórico de vendas, fora das telas ao vivo). Nunca
+    entrou na rotação do robô (só Itabuna/Ilhéus/Ipiaú), então não afetava
+    o Monitor de Preço; afetaria uma futura tela de Custo x Margem se
+    não tivesse sido marcada.
+- **Rotação de cidade do robô trocada 15/09/26** (Gabriel achou a
+  captação de Ilhéus/Ipiaú baixa demais): antes, cada cidade só entrava
+  na rotação quando uma VOLTA COMPLETA de 4305 termos terminava — no
+  ritmo real (bloqueios intercalados), Ilhéus levaria ~2-3 semanas pra
+  começar a captar QUALQUER coisa. Trocado pra rodízio por lote
+  (Itabuna → Ilhéus → Ipiaú → Itabuna a cada execução), mesmo volume de
+  interações por hora/mesmo risco de bloqueio — agora as 3 cidades
+  recebem dado em paralelo desde a próxima execução agendada, em troca
+  de cada cidade levar ~3x mais tempo pra fechar o catálogo inteiro.
+  Ver comentário em `robo_cotacao/agendador_termos.py`.
+- Captação sincronizada: 10.128 preços (ainda só Itabuna no banco — o
+  efeito da mudança de rotação só aparece nas próximas sincronizações).
+  910 itens já têm nosso preço + concorrência comparável; 383 hoje mais
+  caros que o concorrente mais barato da região (números vão mudar
+  quando Ilhéus/Ipiaú entrarem).
 - **Relevância por Classificação implementada** (`/relevancia/`): dado real
   hoje é só **jan + jul/26** (ver achado acima), 156.042 linhas, cruzadas
   com 71.643 produtos do cadastro (44.707 com classificação, usando a
