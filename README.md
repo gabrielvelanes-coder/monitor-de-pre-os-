@@ -261,3 +261,72 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     endereço que não bate com nenhuma das 2 lojas Ultra Popular
     cadastradas em Itabuna — cadastro de loja incompleto, não erro de
     lógica.
+- **Auditoria 360, 2ª rodada — mais 1 bug real + 1 achado de cadastro:**
+  - **BUG REAL em `montar_comparativo`:** selecionar Loja + Cidade
+    incompatível (loja de uma cidade, filtro de outra) quebrava TODAS
+    as comparações de concorrente em silêncio — `nossos_qs` ficava
+    restrito à loja (cidade real), mas `conc_qs` aplicava o parâmetro
+    de URL por fora, sem relação. "Itens comparados" continuava normal,
+    "mais caros" ia pra 0 escondido, sem aviso. Corrigido: loja sempre
+    manda na cidade/bandeira, ignora parâmetro de URL conflitante;
+    `views.py` também corrigido pra mostrar os dropdowns refletindo a
+    loja de verdade.
+  - **1092 produtos com EAN='nan'** (string literal, bug do pandas no
+    1º loop de `importar_produtos` que não tinha a mesma guarda do 2º)
+    — confirmado sem sintoma visível, corrigido por consistência.
+  - **Achado de cadastro (não bug):** 194 dos 215 "sem vínculo"
+    restantes eram todos o MESMO endereço — "DROGARIA ULTRAPOPULAR" na
+    Av. Cinquentenário 428A, Itabuna, endereço que no cadastro
+    pertencia à Loja 21 (Velanes). Gabriel confirmou: **Loja 10 (Ultra
+    3) mudou pra esse endereço, Loja 21 fechou de vez.** Corrigido no
+    `lojas_config.json` (fonte no robô) — Loja 10 com endereço novo,
+    Loja 21 `ativa=false`. **Vínculo de loja subiu de 91% pra 99,1%**
+    (2.367 de 2.388). Captação resincronizada no processo: 10.585
+    preços agora (era 10.428).
+
+## Pendências (16/09/2026)
+
+Lista consolidada do que falta/está esperando decisão — atualizar aqui
+sempre que resolver ou surgir uma nova, em vez de só no meio do log
+acima.
+
+**Dados de vendas (bloqueado no Gabriel):**
+- Reexportar **maio/junho/agosto** com o relatório certo ("Análise de
+  Venda por Item" COM quebra por loja e Ano-mês — mesmo relatório que
+  gerou fev/mar/abr certos). Maio/agosto vieram no relatório errado
+  (sem a coluna Ano-mês); junho nunca foi reenviado depois do 1º achado
+  de duplicata.
+- **Setembro** nunca foi mandado (nem parcial).
+
+**Telas ainda não construídas:**
+- **Análise de Entradas** — nem o relatório de origem (histórico de
+  entrada/compra do ERP) nem a regra de "o que conta como variação
+  relevante" foram definidos. Gabriel disse "depois vemos entrada"
+  (15/09/26), foco era só Monitor de Preço.
+- **Gráfico de dispersão/posicionamento** — quadrantes Margem x
+  Diferença de preço vs. concorrência, 1 ponto por produto, filtro por
+  loja, interativo. Gabriel pediu explicitamente pra **deixar em
+  pendência** (16/09/26) — cruza `apps/monitor` (preço) com
+  `apps/vendas` (margem), hoje independentes; vai precisar de app/tela
+  nova de verdade, não é extensão pequena.
+
+**Decisões de produto em aberto:**
+- **Histórico/série temporal** — hoje o Monitor de Preço só mostra o
+  estado ATUAL (snapshot), sem guardar histórico pra responder "estamos
+  ficando mais caros ao longo do tempo?". Discutido quando Gabriel
+  perguntou se a ferramenta está "boa pra decisão" — é mudança de
+  arquitetura (guardar séries temporais), decisão dele se entra na v1.
+- **Acesso/deploy** — hoje só roda via `manage.py runserver` na máquina
+  do Gabriel (`DEBUG=True`, sem host configurado). Se for pra outras
+  pessoas do Grupo Velanes acessarem (gerente de loja, comprador),
+  precisa decidir hospedagem. Perguntado, sem decisão ainda.
+
+**Manutenção recorrente (não é bug, é rotina):**
+- `manage.py geocodificar_concorrentes` **não roda automático** (só
+  `vincular_lojas_captacao`/`extrair_bairros_captacao` rodam sozinhos
+  no fim de `sincronizar_captacao`) — precisa rodar manual de vez em
+  quando conforme aparecem concorrentes novos na captação (hoje 29 de
+  43 endereços únicos geocodificados).
+- Cobertura de Ilhéus/Ipiaú ainda crescendo (rodízio por lote do robô
+  entrou em produção 15/09/26) — números de comparação nessas 2 cidades
+  ainda vão crescer sozinhos, sem precisar de nada daqui.
