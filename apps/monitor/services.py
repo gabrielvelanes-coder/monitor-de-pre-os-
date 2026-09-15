@@ -31,6 +31,7 @@ def montar_comparativo(
     subclassificacao: str | None = None,
     situacao: str | None = None,  # "mais_caro" | "mais_barato" | None
     loja_id: int | None = None,
+    bairro: str | None = None,
 ) -> list[dict]:
     """1 linha por EAN visto em pelo menos 1 das nossas bandeiras, com o
     preço nosso (média das nossas lojas daquela bandeira/cidade -- ou o
@@ -56,6 +57,9 @@ def montar_comparativo(
             nossos_qs = nossos_qs.filter(rede__nome=bandeira)
     if cidade:
         conc_qs = conc_qs.filter(cidade_busca=cidade)
+    if bairro:
+        nossos_qs = nossos_qs.filter(bairro=bairro)
+        conc_qs = conc_qs.filter(bairro=bairro)
 
     nossos_qs = nossos_qs.select_related("rede", "loja")
     conc_qs = conc_qs.select_related("rede")
@@ -101,6 +105,7 @@ def montar_comparativo(
                 "loja": p.loja.nome if p.loja else None,
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
+                "bairro": p.bairro,
                 "_lat": p.loja.lat if tem_geo else None,
                 "_lon": p.loja.lon if tem_geo else None,
             })
@@ -119,6 +124,7 @@ def montar_comparativo(
                 "estabelecimento": p.estabelecimento,
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
+                "bairro": p.bairro,
                 "distancia_km": None,
                 "distancias_por_loja": [],
             }

@@ -59,6 +59,13 @@ class PrecoCaptado(models.Model):
     )
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
+    bairro = models.CharField(
+        max_length=80, blank=True, db_index=True,
+        help_text="Extraído do endereço bruto (regex, não vem separado do robô) via "
+                   "'manage.py extrair_bairros_captacao' -- pedido do Gabriel pra comparar preço "
+                   "do mesmo produto entre bairros da mesma cidade (ex.: bairro X vende mais caro "
+                   "que o Centro).",
+    )
 
     class Meta:
         constraints = [

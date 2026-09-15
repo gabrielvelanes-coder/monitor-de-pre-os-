@@ -91,3 +91,4 @@ class Command(BaseCommand):
             ))
 
         call_command("vincular_lojas_captacao")
+        call_command("extrair_bairros_captacao")

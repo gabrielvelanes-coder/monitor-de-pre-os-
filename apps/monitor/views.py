@@ -14,6 +14,7 @@ def monitor_preco(request):
     subclassificacao = request.GET.get("subclassificacao") or None
     situacao = request.GET.get("situacao") or None
     loja_id = request.GET.get("loja") or None
+    bairro = request.GET.get("bairro") or None
 
     cidades = list(
         PrecoCaptado.objects.exclude(cidade_busca="")
@@ -31,6 +32,10 @@ def monitor_preco(request):
         Produto.objects.exclude(subclassificacao="")
         .values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
     )
+    bairros = list(
+        PrecoCaptado.objects.exclude(bairro="")
+        .values_list("bairro", flat=True).distinct().order_by("bairro")
+    )
     lojas_com_dado = set(
         PrecoCaptado.objects.filter(rede__tipo="nossa", loja__isnull=False)
         .values_list("loja_id", flat=True).distinct()
@@ -44,7 +49,7 @@ def monitor_preco(request):
     linhas = montar_comparativo(
         cidade=cidade, bandeira=bandeira, classificacao=classificacao,
         subclassificacao=subclassificacao, situacao=situacao,
-        loja_id=int(loja_id) if loja_id else None,
+        loja_id=int(loja_id) if loja_id else None, bairro=bairro,
     )
 
     context = {
@@ -54,12 +59,14 @@ def monitor_preco(request):
         "classificacoes": classificacoes,
         "subclassificacoes": subclassificacoes,
         "lojas": lojas,
+        "bairros": bairros,
         "cidade_selecionada": cidade,
         "bandeira_selecionada": bandeira,
         "classificacao_selecionada": classificacao,
         "subclassificacao_selecionada": subclassificacao,
         "situacao_selecionada": situacao,
         "loja_selecionada": int(loja_id) if loja_id else None,
+        "bairro_selecionado": bairro,
         "total": len(linhas),
         "mais_caros": sum(1 for l in linhas if (l["diferenca_pct"] or 0) > 0),
         "sem_comparacao": sum(1 for l in linhas if l["diferenca_pct"] is None),
