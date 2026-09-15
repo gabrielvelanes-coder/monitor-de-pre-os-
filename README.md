@@ -117,8 +117,13 @@ selecionada.
   + marcação "relevante" (curva ABC calculada na venda real, até 80%
   acumulado). Números de venda por classificação **vão mudar** assim que
   fev-jun entrarem de verdade.
-- Custo x Margem por loja/bandeira/cidade: dados já disponíveis
-  (`VendaItem.venda/custo/lucro`), tela ainda não construída — próximo
-  passo natural, avisar se é pra fazer agora.
+- **Custo x Margem implementada** (`/custo-margem/`): 3 níveis (por
+  loja/por bandeira/por cidade) a partir de `VendaItem.venda/custo/lucro`,
+  mesmos filtros de mês/bandeira/cidade da tela de Relevância. Tabela "por
+  loja" ordenada com a menor margem primeiro (só destaca, não recomenda
+  nada). Loja 12 (Jaguaquara, fechada) aparece marcada "fechada" mas não é
+  escondida — mantém o histórico de venda visível. Números de hoje (jan+jul
+  reais): venda R$ 18,2M, custo R$ 12,8M, lucro R$ 5,5M, margem geral 29,9%
+  — vão mudar quando fev-jun entrarem de verdade.
 - Análise de Entradas: nem o relatório nem a regra de "variação relevante"
   foram definidos ainda.

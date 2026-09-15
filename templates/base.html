@@ -57,6 +57,7 @@
     <nav>
         <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
         <a href="{% url 'vendas:relevancia' %}" {% if request.resolver_match.url_name == 'relevancia' %}class="ativo"{% endif %}>Relevância</a>
+        <a href="{% url 'vendas:custo_margem' %}" {% if request.resolver_match.url_name == 'custo_margem' %}class="ativo"{% endif %}>Custo x Margem</a>
         <a href="#" title="Ainda não implementado">Análise de Entradas</a>
     </nav>
 </header>

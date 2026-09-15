@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block titulo %}Custo x Margem{% endblock %}
+{% block conteudo %}
+
+<form class="filtros" method="get">
+    <div>
+        <label for="de">De (mês)</label>
+        <select name="de" id="de">
+            <option value="">Início</option>
+            {% for m in meses %}<option value="{{ m }}" {% if m == ano_mes_de %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="ate">Até (mês)</label>
+        <select name="ate" id="ate">
+            <option value="">Fim</option>
+            {% for m in meses %}<option value="{{ m }}" {% if m == ano_mes_ate %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="bandeira">Bandeira</label>
+        <select name="bandeira" id="bandeira">
+            <option value="">Todas</option>
+            {% for b in bandeiras %}<option value="{{ b }}" {% if b == bandeira_selecionada %}selected{% endif %}>{{ b }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="cidade">Cidade</label>
+        <select name="cidade" id="cidade">
+            <option value="">Todas</option>
+            {% for c in cidades %}<option value="{{ c }}" {% if c == cidade_selecionada %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+    </div>
+    <button type="submit">Filtrar</button>
+</form>
+
+<div class="cartoes">
+    <div class="cartao">
+        <div class="valor">R$ {{ geral.venda|default:0|floatformat:0 }}</div>
+        <div class="rotulo">Venda total</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">R$ {{ geral.custo|default:0|floatformat:0 }}</div>
+        <div class="rotulo">Custo total</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">R$ {{ geral.lucro|default:0|floatformat:0 }}</div>
+        <div class="rotulo">Lucro total</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">{% if geral.margem_pct %}{{ geral.margem_pct }}%{% else %}—{% endif %}</div>
+        <div class="rotulo">Margem geral</div>
+    </div>
+</div>
+
+<h2>Por bandeira</h2>
+<table>
+    <thead>
+        <tr><th>Bandeira</th><th class="num">Venda</th><th class="num">Custo</th><th class="num">Lucro</th><th class="num">Margem</th></tr>
+    </thead>
+    <tbody>
+        {% for l in por_bandeira %}
+        <tr>
+            <td>{{ l.loja__bandeira|default:"(sem bandeira)" }}</td>
+            <td class="num">R$ {{ l.venda|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.custo|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.lucro|floatformat:2 }}</td>
+            <td class="num">{% if l.margem_pct %}{{ l.margem_pct }}%{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Por cidade</h2>
+<table>
+    <thead>
+        <tr><th>Cidade</th><th class="num">Venda</th><th class="num">Custo</th><th class="num">Lucro</th><th class="num">Margem</th></tr>
+    </thead>
+    <tbody>
+        {% for l in por_cidade %}
+        <tr>
+            <td>{{ l.loja__cidade|default:"(sem cidade)" }}</td>
+            <td class="num">R$ {{ l.venda|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.custo|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.lucro|floatformat:2 }}</td>
+            <td class="num">{% if l.margem_pct %}{{ l.margem_pct }}%{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Por loja <span style="font-weight:400; font-size:13px; color:#888;">(menor margem primeiro)</span></h2>
+<table>
+    <thead>
+        <tr><th>Loja</th><th>Bandeira</th><th>Cidade</th><th class="num">Venda</th><th class="num">Custo</th><th class="num">Lucro</th><th class="num">Margem</th></tr>
+    </thead>
+    <tbody>
+        {% for l in por_loja %}
+        <tr>
+            <td>{{ l.loja__nome }}{% if not l.loja__ativa %} <span class="tag neutro">fechada</span>{% endif %}</td>
+            <td>{{ l.loja__bandeira|default:"—" }}</td>
+            <td>{{ l.loja__cidade|default:"—" }}</td>
+            <td class="num">R$ {{ l.venda|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.custo|floatformat:2 }}</td>
+            <td class="num">R$ {{ l.lucro|floatformat:2 }}</td>
+            <td class="num">{% if l.margem_pct %}{{ l.margem_pct }}%{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="vazio">Sem dados de venda pros filtros escolhidos.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

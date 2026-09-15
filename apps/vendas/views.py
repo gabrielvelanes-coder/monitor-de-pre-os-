@@ -3,7 +3,7 @@ from django.shortcuts import render
 from apps.lojas.models import Loja
 from apps.vendas.models import VendaItem
 
-from .services import relevancia_por_classificacao
+from .services import custo_margem_resumo, relevancia_por_classificacao
 
 
 def relevancia(request):
@@ -40,3 +40,24 @@ def relevancia(request):
         "itens_detalhe": dados.get(classificacao_escolhida, []) if classificacao_escolhida else None,
     }
     return render(request, "vendas/relevancia.html", context)
+
+
+def custo_margem(request):
+    ano_mes_de = request.GET.get("de") or None
+    ano_mes_ate = request.GET.get("ate") or None
+    bandeira = request.GET.get("bandeira") or None
+    cidade = request.GET.get("cidade") or None
+
+    meses = list(VendaItem.objects.values_list("ano_mes", flat=True).distinct().order_by("ano_mes"))
+    bandeiras = list(Loja.objects.exclude(bandeira="").values_list("bandeira", flat=True).distinct().order_by("bandeira"))
+    cidades = list(Loja.objects.exclude(cidade="").values_list("cidade", flat=True).distinct().order_by("cidade"))
+
+    dados = custo_margem_resumo(ano_mes_de, ano_mes_ate, bandeira, cidade)
+
+    context = {
+        "meses": meses, "bandeiras": bandeiras, "cidades": cidades,
+        "ano_mes_de": ano_mes_de, "ano_mes_ate": ano_mes_ate,
+        "bandeira_selecionada": bandeira, "cidade_selecionada": cidade,
+        **dados,
+    }
+    return render(request, "vendas/custo_margem.html", context)
