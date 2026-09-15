@@ -8,24 +8,38 @@
             color-scheme: dark;
             --bg: #10141b; --superficie: #1a1f29; --superficie2: #212836;
             --borda: #2a3140; --texto: #e6e9ef; --texto-fraco: #8b93a3;
-            --acento: #5b8dee; --acento-texto: #0b0f14;
+            --acento: #5b8dee; --acento-bg: #1e2a44; --acento-texto: #0b0f14;
             --vermelho: #ff6b6b; --vermelho-bg: rgba(255,107,107,.14);
             --verde: #4ade80; --verde-bg: rgba(74,222,128,.14);
+            --sidebar-w: 230px;
         }
         * { box-sizing: border-box; }
         body {
             margin: 0; font-family: -apple-system, Segoe UI, Arial, sans-serif;
             background: var(--bg); color: var(--texto);
         }
-        header.topo {
-            background: var(--superficie); color: var(--texto); padding: 14px 24px;
-            display: flex; align-items: center; gap: 24px; border-bottom: 1px solid var(--borda);
+        .layout { display: flex; min-height: 100vh; }
+        aside {
+            width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+            background: var(--superficie); border-right: 1px solid var(--borda);
+            padding: 18px 14px; position: sticky; top: 0; height: 100vh;
+            overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
         }
-        header.topo h1 { font-size: 18px; margin: 0; font-weight: 600; }
-        header.topo nav a {
-            color: var(--texto-fraco); text-decoration: none; font-size: 14px; margin-right: 16px;
+        aside h1 { font-size: 15.5px; margin: 0; padding: 0 6px; font-weight: 600; }
+        aside h1 span { display: block; color: var(--texto-fraco); font-weight: 400; font-size: 12px; margin-top: 2px; }
+        aside nav { display: flex; flex-direction: column; gap: 2px; }
+        aside nav .grupo-titulo {
+            font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--texto-fraco); margin: 14px 6px 2px; font-weight: 600;
         }
-        header.topo nav a.ativo, header.topo nav a:hover { color: var(--texto); font-weight: 600; }
+        aside nav .grupo-titulo:first-child { margin-top: 0; }
+        aside nav a {
+            color: var(--texto); text-decoration: none; padding: 7px 10px;
+            border-radius: 7px; font-size: 13.8px;
+        }
+        aside nav a:hover { background: var(--acento-bg); }
+        aside nav a.ativo { background: var(--acento); color: var(--acento-texto); font-weight: 600; }
+        .conteudo { flex: 1; min-width: 0; }
         main { padding: 24px; max-width: 1400px; margin: 0 auto; }
         h2 { color: var(--texto); font-size: 16px; }
         .cartoes { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -70,17 +84,27 @@
     </style>
 </head>
 <body>
-<header class="topo">
-    <h1>🔎 Monitor de Preço de Mercado</h1>
-    <nav>
-        <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
-        <a href="{% url 'vendas:relevancia' %}" {% if request.resolver_match.url_name == 'relevancia' %}class="ativo"{% endif %}>Relevância</a>
-        <a href="{% url 'vendas:custo_margem' %}" {% if request.resolver_match.url_name == 'custo_margem' %}class="ativo"{% endif %}>Custo x Margem</a>
-        <a href="#" title="Ainda não implementado">Análise de Entradas</a>
-    </nav>
-</header>
-<main>
-    {% block conteudo %}{% endblock %}
-</main>
+<div class="layout">
+    <aside>
+        <h1>🔎 Monitor de Preço <span>Grupo Velanes</span></h1>
+        <nav>
+            <div class="grupo-titulo">Preço</div>
+            <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
+            <a href="#" title="Ainda não implementado">Análise de Entradas</a>
+
+            <div class="grupo-titulo">Vendas</div>
+            <a href="{% url 'vendas:relevancia' %}" {% if request.resolver_match.url_name == 'relevancia' %}class="ativo"{% endif %}>Relevância</a>
+            <a href="{% url 'vendas:custo_margem' %}" {% if request.resolver_match.url_name == 'custo_margem' %}class="ativo"{% endif %}>Custo x Margem</a>
+
+            <div class="grupo-titulo">Sistema</div>
+            <a href="/admin/">Admin</a>
+        </nav>
+    </aside>
+    <div class="conteudo">
+        <main>
+            {% block conteudo %}{% endblock %}
+        </main>
+    </div>
+</div>
 </body>
 </html>
