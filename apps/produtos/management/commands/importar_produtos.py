@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,13 @@ def _normalizar_codigo(valor) -> str:
 
 def _normalizar_descricao(valor) -> str:
     return " ".join(str(valor or "").strip().upper().split())
+
+
+def _palavras(texto: str) -> set[str]:
+    """Palavras de 4+ letras (ignora MG/ML/CPR/C/30 etc.) -- usado só pra
+    detectar se duas descrições são do mesmo produto ou não têm nada a
+    ver (ver comentário do BUG de código reaproveitado abaixo)."""
+    return set(w for w in re.split(r"[^A-ZÀ-Ü0-9]+", (texto or "").upper()) if len(w) >= 4)
 
 
 class Command(BaseCommand):
@@ -85,6 +93,7 @@ class Command(BaseCommand):
             desc: next(iter(ccs)) for desc, ccs in classificacoes_vistas.items() if len(ccs) == 1
         }
 
+        codigo_reaproveitado = 0
         for _, row in linhas_arvore:
             chaves = chaves_possiveis(row.get("Código"))
             if not chaves:
@@ -94,16 +103,39 @@ class Command(BaseCommand):
             estoque_row = next((estoque_por_etiqueta[c] for c in chaves if c in estoque_por_etiqueta), None)
             ean, preco_venda, preco_ref = "", None, None
             fabricante = str(row.get("Fabricante") or "").strip()
-            descricao = str(row.get("Descrição") or "").strip()
+            descricao_arvore = str(row.get("Descrição") or "").strip()
+            descricao = descricao_arvore
+            classificacao_completa = str(row.get("Classificação") or "").strip()
+
             if estoque_row is not None:
                 ean = _normalizar_codigo(estoque_row.get("Código de Barras"))
                 preco_venda = parse_decimal(estoque_row.get("Preço Venda"))
                 preco_ref = parse_decimal(estoque_row.get("Preço Referencial"))
                 fabricante = fabricante or str(estoque_row.get("Fabricante") or "").strip()
-                descricao = descricao or str(estoque_row.get("Produto") or "").strip()
+                descricao_estoque = str(estoque_row.get("Produto") or "").strip()
                 vistos.update(chaves_possiveis(estoque_row.get("Etiqueta")))
 
-            classificacao_completa = str(row.get("Classificação") or "").strip()
+                # BUG REAL encontrado 15/09/26 (Gabriel filtrou "GENÉRICOS"
+                # e vieram itens de outras classificações): o "Código" da
+                # árvore é um identificador INTERNO do ERP que às vezes é
+                # REAPROVEITADO com o tempo pra um produto diferente (ex.
+                # código 78881: a árvore diz "SAB LIQ REXONA...", o estoque
+                # (mais atual, é de onde vem o EAN de verdade) diz "ABS
+                # ALWAYS..." -- são produtos completamente diferentes,
+                # zero palavra em comum). Nesse caso a Descrição/
+                # Classificação da árvore NÃO são confiáveis pra esse EAN
+                # -- usa o texto do estoque (mais atual) e tenta recuperar
+                # a classificação certa pela descrição (mesmo mecanismo já
+                # usado no 2º loop pra código sem match nenhum); se não
+                # achar, fica sem classificação mesmo -- errado é pior que
+                # "sem".
+                if descricao_estoque and descricao_arvore and not (_palavras(descricao_estoque) & _palavras(descricao_arvore)):
+                    codigo_reaproveitado += 1
+                    descricao = descricao_estoque
+                    classificacao_completa = classificacao_por_descricao.get(_normalizar_descricao(descricao_estoque), "")
+                else:
+                    descricao = descricao_arvore or descricao_estoque
+
             _, created = Produto.objects.update_or_create(
                 etiqueta=etiqueta_str,
                 defaults={
@@ -158,6 +190,12 @@ class Command(BaseCommand):
                 sem_classificacao += 1
 
         self.stdout.write(self.style.SUCCESS(f"{criados} produto(s) criado(s), {atualizados} atualizado(s)."))
+        if codigo_reaproveitado:
+            self.stdout.write(self.style.WARNING(
+                f"{codigo_reaproveitado} produto(s) com código interno reaproveitado (árvore e estoque "
+                f"descrevem produtos diferentes pro mesmo código) -- descrição/classificação vieram do "
+                f"estoque (mais atual), recuperando a classificação certa pela descrição quando possível."
+            ))
         if recuperados_por_descricao:
             self.stdout.write(self.style.SUCCESS(
                 f"{recuperados_por_descricao} produto(s) recuperaram classificação via descrição "

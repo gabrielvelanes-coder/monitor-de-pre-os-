@@ -26,6 +26,19 @@ def _numero_rua(endereco: str) -> str | None:
     return m.group() if m else None
 
 
+def _numero_loja(endereco: str) -> str | None:
+    """Número do endereço da Loja (cadastro) -- só tem 1 número normalmente
+    (não tem CEP colado como no endereço do robô). BUG REAL corrigido
+    15/09/26: comparar por SUBSTRING ('2' in 'PRAÇA JOSÉ BASTOS, 2 CENTRO')
+    também batia contra qualquer outro número que CONTIVESSE o dígito '2'
+    em outra posição ('128', '1299', '428A', '32') -- número curto (1-2
+    dígitos) virava ambíguo por engano mesmo tendo 1 match exato de
+    verdade. Agora extrai o número da loja e compara IGUALDADE, não
+    substring."""
+    m = _REGEX_NUMERO.search(endereco or "")
+    return m.group() if m else None
+
+
 def _nome_rua(endereco: str) -> str:
     """Nome da rua/avenida, sem prefixo (AVENIDA/AV/RUA) e sem número --
     usado como fallback quando o endereço é 'S/N' dos dois lados (robô E
@@ -71,7 +84,7 @@ class Command(BaseCommand):
             numero = _numero_rua(p.endereco)
 
             if numero:
-                bateram = [l for l in candidatas if numero in (l.endereco or "")]
+                bateram = [l for l in candidatas if _numero_loja(l.endereco) == numero]
             else:
                 # endereço S/N (sem número) -- só tenta candidata que
                 # TAMBÉM não tem número, casando pelo nome da rua
