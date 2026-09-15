@@ -19,6 +19,17 @@
 
 <form class="filtros" method="get">
     <div>
+        <label for="loja">Loja</label>
+        <select name="loja" id="loja">
+            <option value="">Todas</option>
+            {% for l in lojas %}
+                <option value="{{ l.id }}" {% if l.id == loja_selecionada %}selected{% endif %}>
+                    {{ l.nome }} — {{ l.bandeira }}, {{ l.cidade }}{% if not l.tem_dado %} (sem dado ainda){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
         <label for="bandeira">Bandeira</label>
         <select name="bandeira" id="bandeira">
             <option value="">Todas</option>
@@ -107,7 +118,7 @@
                 {% if l.concorrente_mais_barato %}
                     {{ l.concorrente_mais_barato }}
                     {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
-                    {% if l.distancia_km_concorrente %}<span class="dist"> · {{ l.distancia_km_concorrente }} km</span>{% endif %}
+                    {% if l.distancia_km_concorrente %}<span class="dist"> · {{ l.distancia_km_concorrente }} km de {{ l.loja_referencia }}</span>{% endif %}
                     {% if l.n_concorrentes > 1 %}
                     <details class="expansivel">
                         <summary><small>+{{ l.n_concorrentes|add:"-1" }} outro(s)</small></summary>
@@ -116,7 +127,13 @@
                             <li>
                                 <span class="nome">{{ cl.estabelecimento }} <span class="dist">({{ cl.rede }})</span></span>
                                 <span>R$ {{ cl.preco }}</span>
-                                <span class="dist">{% if cl.distancia_km %}{{ cl.distancia_km }} km{% else %}{{ cl.distancia_centro }}{% endif %}</span>
+                                <span class="dist">
+                                    {% if cl.distancia_km %}{{ cl.distancia_km }} km de {{ l.loja_referencia }}
+                                    {% elif cl.distancias_por_loja %}
+                                        {% for d in cl.distancias_por_loja %}{{ d.loja }}: {% if d.km %}{{ d.km }} km{% else %}—{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+                                    {% else %}{{ cl.distancia_centro }} do centro
+                                    {% endif %}
+                                </span>
                             </li>
                             {% endfor %}
                         </ul>

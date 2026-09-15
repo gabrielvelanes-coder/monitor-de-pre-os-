@@ -30,21 +30,32 @@ def montar_comparativo(
     classificacao: str | None = None,
     subclassificacao: str | None = None,
     situacao: str | None = None,  # "mais_caro" | "mais_barato" | None
+    loja_id: int | None = None,
 ) -> list[dict]:
     """1 linha por EAN visto em pelo menos 1 das nossas bandeiras, com o
-    preço nosso (média das nossas lojas daquela bandeira/cidade) contra o
-    MENOR preço achado entre os concorrentes rastreados na mesma cidade.
-    Cada linha carrega também a lista completa de nossas lojas e de
-    concorrentes envolvidos (loja/estabelecimento, preço, distância) --
-    não só o resumo -- pra dar pra ver especificamente quem é quem, não só
-    a rede/bandeira."""
+    preço nosso (média das nossas lojas daquela bandeira/cidade -- ou o
+    preço de 1 loja só, se `loja_id` for dado) contra o MENOR preço achado
+    entre os concorrentes rastreados na mesma cidade. Cada linha carrega
+    também a lista completa de nossas lojas e de concorrentes envolvidos
+    (loja/estabelecimento, preço, distância) -- não só o resumo.
+
+    Distância loja-nossa x concorrente só é mostrada no RESUMO da linha
+    quando é inequívoca -- ou `loja_id` foi dado, ou todas as nossas lojas
+    daquele EAN/cidade acabam sendo a MESMA loja física (comum hoje, já
+    que só 14 das 24 lojas ativas têm captação vinculada). Quando 2+ lojas
+    distintas estão envolvidas, o resumo fica sem número (evita distância
+    enganosa) mas o detalhe expandido mostra a distância por loja."""
     nossos_qs = PrecoCaptado.objects.filter(rede__tipo="nossa", preco__isnull=False)
     conc_qs = PrecoCaptado.objects.filter(rede__tipo="concorrente", preco__isnull=False)
+    if loja_id:
+        nossos_qs = nossos_qs.filter(loja_id=loja_id)
+    else:
+        if cidade:
+            nossos_qs = nossos_qs.filter(cidade_busca=cidade)
+        if bandeira:
+            nossos_qs = nossos_qs.filter(rede__nome=bandeira)
     if cidade:
-        nossos_qs = nossos_qs.filter(cidade_busca=cidade)
         conc_qs = conc_qs.filter(cidade_busca=cidade)
-    if bandeira:
-        nossos_qs = nossos_qs.filter(rede__nome=bandeira)
 
     nossos_qs = nossos_qs.select_related("rede", "loja")
     conc_qs = conc_qs.select_related("rede")
@@ -86,6 +97,7 @@ def montar_comparativo(
         for p in nossos_precos:
             tem_geo = p.loja and p.loja.lat is not None
             nossas_lojas.append({
+                "loja_id": p.loja_id,
                 "loja": p.loja.nome if p.loja else None,
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
@@ -94,22 +106,31 @@ def montar_comparativo(
             })
         nossas_lojas.sort(key=lambda x: x["preco"])
 
-        # referência de distância real: a 1ª loja nossa vinculada (geocodificada)
-        ref_lat = ref_lon = None
-        for nl in nossas_lojas:
-            if nl["_lat"] is not None:
-                ref_lat, ref_lon = nl["_lat"], nl["_lon"]
-                break
+        # lojas distintas com coordenada, pra saber se a distância do
+        # concorrente vai ser inequívoca (1 loja só) ou ambígua (2+)
+        lojas_geo = {(nl["loja_id"], nl["loja"]): (nl["_lat"], nl["_lon"])
+                     for nl in nossas_lojas if nl["_lat"] is not None}
+        loja_referencia = next(iter(lojas_geo))[1] if len(lojas_geo) == 1 else None
 
         concorrentes_linha = []
         for p in concorrentes.get((ean, cid), []):
-            concorrentes_linha.append({
+            item = {
                 "rede": p.rede.nome if p.rede else "",
                 "estabelecimento": p.estabelecimento,
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
-                "distancia_km": _distancia_km(ref_lat, ref_lon, p.lat, p.lon),
-            })
+                "distancia_km": None,
+                "distancias_por_loja": [],
+            }
+            if len(lojas_geo) == 1:
+                lat_ref, lon_ref = next(iter(lojas_geo.values()))
+                item["distancia_km"] = _distancia_km(lat_ref, lon_ref, p.lat, p.lon)
+            elif len(lojas_geo) > 1:
+                item["distancias_por_loja"] = [
+                    {"loja": nome, "km": _distancia_km(lat, lon, p.lat, p.lon)}
+                    for (_lid, nome), (lat, lon) in lojas_geo.items()
+                ]
+            concorrentes_linha.append(item)
         concorrentes_linha.sort(key=lambda x: x["preco"])
 
         if concorrentes_linha:
@@ -132,6 +153,7 @@ def montar_comparativo(
             "subclassificacao": produto.subclassificacao if produto else "",
             "nosso_preco": round(nosso_medio, 2),
             "nossas_lojas": nossas_lojas,
+            "loja_referencia": loja_referencia,
             "concorrente_mais_barato": menor["estabelecimento"] if menor else None,
             "concorrente_rede": menor["rede"] if menor else None,
             "preco_concorrente": menor["preco"] if menor else None,

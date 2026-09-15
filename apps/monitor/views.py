@@ -1,6 +1,7 @@
 from django.shortcuts import render
 
 from apps.captacao.models import PrecoCaptado
+from apps.lojas.models import Loja
 from apps.produtos.models import Produto
 
 from .services import montar_comparativo
@@ -12,6 +13,7 @@ def monitor_preco(request):
     classificacao = request.GET.get("classificacao") or None
     subclassificacao = request.GET.get("subclassificacao") or None
     situacao = request.GET.get("situacao") or None
+    loja_id = request.GET.get("loja") or None
 
     cidades = list(
         PrecoCaptado.objects.exclude(cidade_busca="")
@@ -29,10 +31,20 @@ def monitor_preco(request):
         Produto.objects.exclude(subclassificacao="")
         .values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
     )
+    lojas_com_dado = set(
+        PrecoCaptado.objects.filter(rede__tipo="nossa", loja__isnull=False)
+        .values_list("loja_id", flat=True).distinct()
+    )
+    lojas = [
+        {"id": l.id, "nome": l.nome, "bandeira": l.bandeira, "cidade": l.cidade,
+         "tem_dado": l.id in lojas_com_dado}
+        for l in Loja.objects.filter(ativa=True).order_by("cidade", "nome")
+    ]
 
     linhas = montar_comparativo(
         cidade=cidade, bandeira=bandeira, classificacao=classificacao,
         subclassificacao=subclassificacao, situacao=situacao,
+        loja_id=int(loja_id) if loja_id else None,
     )
 
     context = {
@@ -41,11 +53,13 @@ def monitor_preco(request):
         "bandeiras": bandeiras,
         "classificacoes": classificacoes,
         "subclassificacoes": subclassificacoes,
+        "lojas": lojas,
         "cidade_selecionada": cidade,
         "bandeira_selecionada": bandeira,
         "classificacao_selecionada": classificacao,
         "subclassificacao_selecionada": subclassificacao,
         "situacao_selecionada": situacao,
+        "loja_selecionada": int(loja_id) if loja_id else None,
         "total": len(linhas),
         "mais_caros": sum(1 for l in linhas if (l["diferenca_pct"] or 0) > 0),
         "sem_comparacao": sum(1 for l in linhas if l["diferenca_pct"] is None),

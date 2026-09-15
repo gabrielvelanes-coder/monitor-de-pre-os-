@@ -163,12 +163,28 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     reimplementando a MESMA lógica já validada em
     `robo_cotacao/mapa_concorrentes.py` (2 bugs reais já corrigidos lá,
     replicados aqui). **29 de 43 endereços únicos geocodificados.**
-    Distância real loja-nossa x concorrente calculada via haversine a
-    partir da loja vinculada mais barata; sem geocodificação, mostra só a
-    distância até o centro da cidade (que já existia).
+    Distância real loja-nossa x concorrente calculada via haversine; sem
+    geocodificação, mostra só a distância até o centro da cidade (que já
+    existia).
   - Filtro por Subclassificação (nível 3 da árvore mercadológica, novo
     campo `Produto.subclassificacao`) além da Classificação (nível 2, já
     existia). Filtro "mais caro / mais barato que a concorrência".
   - Cada linha agora mostra a lista completa (não só resumo): nossas
     lojas com preço+distância, concorrentes com nome real+rede+preço+
     distância — expansível (`<details>` nativo, sem JS).
+- **Monitor de Preço: filtro por Loja (mesma sessão, rodada seguinte)**
+  — Gabriel notou que a distância do concorrente não dizia de QUAL das
+  nossas lojas era (quando o EAN tem preço em 2+ lojas nossas, a
+  distância vinha só da 1ª vinculada, sem rótulo). Voltou pro objetivo
+  real: 22-24 lojas, cada uma com seu preço, "todas as opções de análise"
+  (por loja, cidade, classificação). Resolvido:
+  - Novo filtro "Loja" (dropdown das 24 lojas ativas, mostra bandeira+
+    cidade; marca "(sem dado ainda)" as que não têm captação vinculada —
+    10 das 24 hoje). Selecionando 1 loja, a linha vira preço/distância
+    daquela loja específica só (sem lista "N loja(s)" ambígua).
+  - Sem loja selecionada (visão agregada por bandeira/cidade, mantida):
+    quando todas as nossas lojas daquele EAN resolvem pra 1 loja física
+    só (comum hoje), mostra a distância rotulada ("0,8 km de Loja 3").
+    Quando 2+ lojas distintas estão envolvidas, o resumo não mostra mais
+    nenhum número solto (era enganoso) — o detalhe expandido mostra a
+    distância calculada em relação a CADA loja nossa individualmente.
