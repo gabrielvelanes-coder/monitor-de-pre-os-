@@ -45,3 +45,12 @@ def extrair_classificacao_nivel1(classificacao_completa: str) -> str:
     classificação por item."""
     partes = [p.strip() for p in (classificacao_completa or "").split(">")]
     return partes[1] if len(partes) > 1 else (partes[0] if partes else "")
+
+
+def extrair_subclassificacao_nivel2(classificacao_completa: str) -> str:
+    """'ARVORE NOVA > PROPAGADO > OTC/MIP' -> 'OTC/MIP'. Nível mais fino da
+    árvore, pedido do Gabriel como filtro extra no Monitor de Preço -- nem
+    todo produto tem esse nível (árvore incompleta no ERP), fica vazio
+    quando não tem."""
+    partes = [p.strip() for p in (classificacao_completa or "").split(">")]
+    return partes[2] if len(partes) > 2 else ""

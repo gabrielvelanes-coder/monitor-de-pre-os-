@@ -4,51 +4,69 @@
     <meta charset="UTF-8">
     <title>{% block titulo %}Monitor de Preço de Mercado{% endblock %}</title>
     <style>
-        :root { color-scheme: light; }
+        :root {
+            color-scheme: dark;
+            --bg: #10141b; --superficie: #1a1f29; --superficie2: #212836;
+            --borda: #2a3140; --texto: #e6e9ef; --texto-fraco: #8b93a3;
+            --acento: #5b8dee; --acento-texto: #0b0f14;
+            --vermelho: #ff6b6b; --vermelho-bg: rgba(255,107,107,.14);
+            --verde: #4ade80; --verde-bg: rgba(74,222,128,.14);
+        }
         * { box-sizing: border-box; }
         body {
             margin: 0; font-family: -apple-system, Segoe UI, Arial, sans-serif;
-            background: #f4f5f7; color: #1f2430;
+            background: var(--bg); color: var(--texto);
         }
         header.topo {
-            background: #14213d; color: #fff; padding: 14px 24px;
-            display: flex; align-items: center; gap: 24px;
+            background: var(--superficie); color: var(--texto); padding: 14px 24px;
+            display: flex; align-items: center; gap: 24px; border-bottom: 1px solid var(--borda);
         }
         header.topo h1 { font-size: 18px; margin: 0; font-weight: 600; }
         header.topo nav a {
-            color: #cfd8ea; text-decoration: none; font-size: 14px; margin-right: 16px;
+            color: var(--texto-fraco); text-decoration: none; font-size: 14px; margin-right: 16px;
         }
-        header.topo nav a.ativo, header.topo nav a:hover { color: #fff; font-weight: 600; }
+        header.topo nav a.ativo, header.topo nav a:hover { color: var(--texto); font-weight: 600; }
         main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        h2 { color: var(--texto); font-size: 16px; }
         .cartoes { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
         .cartao {
-            background: #fff; border-radius: 10px; padding: 16px 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,.08); min-width: 160px;
+            background: var(--superficie); border: 1px solid var(--borda); border-radius: 10px;
+            padding: 16px 20px; min-width: 160px;
         }
-        .cartao .valor { font-size: 26px; font-weight: 700; }
-        .cartao .rotulo { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: .04em; }
-        .cartao.alerta .valor { color: #c0392b; }
+        .cartao .valor { font-size: 26px; font-weight: 700; color: var(--texto); }
+        .cartao .rotulo { font-size: 12px; color: var(--texto-fraco); text-transform: uppercase; letter-spacing: .04em; }
+        .cartao.alerta .valor { color: var(--vermelho); }
         form.filtros {
             display: flex; gap: 12px; align-items: end; margin-bottom: 16px;
-            background: #fff; padding: 14px 18px; border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,.08); flex-wrap: wrap;
+            background: var(--superficie); border: 1px solid var(--borda);
+            padding: 14px 18px; border-radius: 10px; flex-wrap: wrap;
         }
-        form.filtros label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
+        form.filtros label { display: block; font-size: 12px; color: var(--texto-fraco); margin-bottom: 4px; }
         form.filtros select, form.filtros button {
-            padding: 7px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;
+            padding: 7px 10px; border-radius: 6px; border: 1px solid var(--borda); font-size: 14px;
+            background: var(--superficie2); color: var(--texto);
         }
-        form.filtros button { background: #14213d; color: #fff; border: none; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
-        table { box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-        th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13.5px; }
-        th { background: #eef1f6; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #444; }
-        tr:hover { background: #fafbfd; }
+        form.filtros button { background: var(--acento); color: var(--acento-texto); border: none; cursor: pointer; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; background: var(--superficie); border-radius: 10px; overflow: hidden; }
+        table { border: 1px solid var(--borda); }
+        th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--borda); font-size: 13.5px; }
+        th { background: var(--superficie2); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--texto-fraco); }
+        tr:hover { background: var(--superficie2); }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
         .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-        .tag.caro { background: #fdecea; color: #c0392b; }
-        .tag.barato { background: #eafaf1; color: #1e8449; }
-        .tag.neutro { background: #eee; color: #666; }
-        .vazio { padding: 40px; text-align: center; color: #888; }
+        .tag.caro { background: var(--vermelho-bg); color: var(--vermelho); }
+        .tag.barato { background: var(--verde-bg); color: var(--verde); }
+        .tag.neutro { background: var(--superficie2); color: var(--texto-fraco); }
+        .vazio { padding: 40px; text-align: center; color: var(--texto-fraco); }
+        .lista-detalhe { margin: 0; padding-left: 0; list-style: none; font-size: 12.5px; }
+        .lista-detalhe li { padding: 3px 0; color: var(--texto-fraco); display: flex; gap: 8px; }
+        .lista-detalhe li .nome { color: var(--texto); flex: 1; }
+        details.expansivel summary {
+            cursor: pointer; color: var(--texto);
+        }
+        details.expansivel summary::-webkit-details-marker { color: var(--texto-fraco); }
+        details.expansivel[open] summary { margin-bottom: 4px; }
+        .dist { color: var(--texto-fraco); font-size: 12px; }
     </style>
 </head>
 <body>

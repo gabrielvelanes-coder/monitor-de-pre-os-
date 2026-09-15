@@ -21,6 +21,11 @@ class Produto(models.Model):
     # sentido que o Gabriel pediu).
     classificacao_completa = models.CharField(max_length=250, blank=True)
     classificacao = models.CharField(max_length=120, blank=True, db_index=True)
+    subclassificacao = models.CharField(
+        max_length=120, blank=True, db_index=True,
+        help_text="3º nível da árvore ('ARVORE NOVA > classificacao > subclassificacao'), "
+                   "quando existir -- nem todo produto tem esse nível.",
+    )
 
     curva_valor = models.CharField(max_length=2, blank=True)
     curva_qtd = models.CharField(max_length=2, blank=True)

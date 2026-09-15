@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -88,3 +89,5 @@ class Command(BaseCommand):
                 f"substring cadastrado) -- normal ter uma cauda de mercados/farmácias avulsas "
                 f"fora do radar; revisar no admin se o número parecer alto."
             ))
+
+        call_command("vincular_lojas_captacao")

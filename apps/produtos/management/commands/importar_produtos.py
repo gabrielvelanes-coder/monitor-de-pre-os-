@@ -6,7 +6,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.produtos.models import Produto
-from apps.produtos.utils import chaves_possiveis, extrair_classificacao_nivel1, parse_decimal
+from apps.produtos.utils import (
+    chaves_possiveis, extrair_classificacao_nivel1, extrair_subclassificacao_nivel2, parse_decimal,
+)
 
 ARQUIVO_ARVORE_PADRAO = "_cadastro_arvore_mercadologica.xlsx"
 ARQUIVO_ESTOQUE_PADRAO = "_cadastro_base_estoque.xlsx"
@@ -78,6 +80,7 @@ class Command(BaseCommand):
                     "fabricante": fabricante,
                     "classificacao_completa": classificacao_completa,
                     "classificacao": extrair_classificacao_nivel1(classificacao_completa),
+                    "subclassificacao": extrair_subclassificacao_nivel2(classificacao_completa),
                     "curva_valor": str(row.get("Curva Valor") or "").strip(),
                     "curva_qtd": str(row.get("Curva Qtd.") or "").strip(),
                     "preco_venda_atual": preco_venda,

@@ -1,5 +1,7 @@
 from django.db import models
 
+from apps.lojas.models import Loja
+
 
 class Rede(models.Model):
     """Uma rede/bandeira que aparece no nome bruto de 'estabelecimento' do
@@ -49,6 +51,14 @@ class PrecoCaptado(models.Model):
     rede = models.ForeignKey(
         Rede, null=True, blank=True, on_delete=models.SET_NULL, related_name="precos"
     )
+    loja = models.ForeignKey(
+        Loja, null=True, blank=True, on_delete=models.SET_NULL, related_name="precos_captados",
+        help_text="Só preenchido pra registros de rede='nossa' -- o robô não distingue qual loja "
+                   "física é qual, então isso é vinculado depois por heurística de endereço "
+                   "(número da rua) em 'manage.py vincular_lojas_captacao', não pelo robô.",
+    )
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
 
     class Meta:
         constraints = [

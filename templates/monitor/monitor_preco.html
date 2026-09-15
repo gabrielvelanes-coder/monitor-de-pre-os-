@@ -36,6 +36,32 @@
             {% endfor %}
         </select>
     </div>
+    <div>
+        <label for="classificacao">Classificação</label>
+        <select name="classificacao" id="classificacao">
+            <option value="">Todas</option>
+            {% for c in classificacoes %}
+                <option value="{{ c }}" {% if c == classificacao_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="subclassificacao">Subclassificação</label>
+        <select name="subclassificacao" id="subclassificacao">
+            <option value="">Todas</option>
+            {% for c in subclassificacoes %}
+                <option value="{{ c }}" {% if c == subclassificacao_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="situacao">Situação</label>
+        <select name="situacao" id="situacao">
+            <option value="">Todos</option>
+            <option value="mais_caro" {% if situacao_selecionada == "mais_caro" %}selected{% endif %}>Mais caro que a concorrência</option>
+            <option value="mais_barato" {% if situacao_selecionada == "mais_barato" %}selected{% endif %}>Mais barato ou igual</option>
+        </select>
+    </div>
     <button type="submit">Filtrar</button>
 </form>
 
@@ -60,8 +86,46 @@
             <td>{{ l.ean }}</td>
             <td>{{ l.titulo|default:"—" }}</td>
             <td>{{ l.cidade }}</td>
-            <td class="num">R$ {{ l.nosso_preco }}</td>
-            <td>{{ l.concorrente_mais_barato|default:"—" }}{% if l.n_concorrentes > 1 %} <small>(+{{ l.n_concorrentes|add:"-1" }})</small>{% endif %}</td>
+            <td class="num">
+                R$ {{ l.nosso_preco }}
+                {% if l.nossas_lojas|length > 1 %}
+                <details class="expansivel">
+                    <summary><small>{{ l.nossas_lojas|length }} loja(s)</small></summary>
+                    <ul class="lista-detalhe">
+                        {% for nl in l.nossas_lojas %}
+                        <li>
+                            <span class="nome">{{ nl.loja|default:"loja não identificada" }}</span>
+                            <span>R$ {{ nl.preco }}</span>
+                            <span class="dist">{{ nl.distancia_centro }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </td>
+            <td>
+                {% if l.concorrente_mais_barato %}
+                    {{ l.concorrente_mais_barato }}
+                    {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
+                    {% if l.distancia_km_concorrente %}<span class="dist"> · {{ l.distancia_km_concorrente }} km</span>{% endif %}
+                    {% if l.n_concorrentes > 1 %}
+                    <details class="expansivel">
+                        <summary><small>+{{ l.n_concorrentes|add:"-1" }} outro(s)</small></summary>
+                        <ul class="lista-detalhe">
+                            {% for cl in l.concorrentes %}
+                            <li>
+                                <span class="nome">{{ cl.estabelecimento }} <span class="dist">({{ cl.rede }})</span></span>
+                                <span>R$ {{ cl.preco }}</span>
+                                <span class="dist">{% if cl.distancia_km %}{{ cl.distancia_km }} km{% else %}{{ cl.distancia_centro }}{% endif %}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                    {% endif %}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
             <td class="num">{% if l.preco_concorrente %}R$ {{ l.preco_concorrente }}{% else %}—{% endif %}</td>
             <td class="num">
                 {% if l.diferenca_pct == None %}
