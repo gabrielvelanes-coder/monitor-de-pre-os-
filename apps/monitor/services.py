@@ -8,8 +8,19 @@ import math
 from collections import Counter, defaultdict
 from decimal import Decimal
 
+from django.utils import timezone
+
 from apps.captacao.models import PrecoCaptado
 from apps.produtos.models import Produto
+
+
+def _dias_atras(dt) -> int | None:
+    """Há quantos dias esse preço foi captado -- Gabriel pediu pra saber a
+    idade do dado (1 dia, 2 dias, 10 dias...), não só o preço em si."""
+    if dt is None:
+        return None
+    delta = timezone.now() - dt
+    return max(delta.days, 0)
 
 
 def _distancia_km(lat1, lon1, lat2, lon2) -> float | None:
@@ -106,6 +117,7 @@ def montar_comparativo(
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
                 "bairro": p.bairro,
+                "dias_atras": _dias_atras(p.atualizado_em),
                 "_lat": p.loja.lat if tem_geo else None,
                 "_lon": p.loja.lon if tem_geo else None,
             })
@@ -125,6 +137,7 @@ def montar_comparativo(
                 "preco": p.preco,
                 "distancia_centro": p.distancia,
                 "bairro": p.bairro,
+                "dias_atras": _dias_atras(p.atualizado_em),
                 "distancia_km": None,
                 "distancias_por_loja": [],
             }
@@ -160,10 +173,12 @@ def montar_comparativo(
             "nosso_preco": round(nosso_medio, 2),
             "nossas_lojas": nossas_lojas,
             "loja_referencia": loja_referencia,
+            "dias_atras_nosso": min((nl["dias_atras"] for nl in nossas_lojas), default=None),
             "concorrente_mais_barato": menor["estabelecimento"] if menor else None,
             "concorrente_rede": menor["rede"] if menor else None,
             "preco_concorrente": menor["preco"] if menor else None,
             "distancia_km_concorrente": menor["distancia_km"] if menor else None,
+            "dias_atras_concorrente": menor["dias_atras"] if menor else None,
             "concorrentes": concorrentes_linha,
             "n_concorrentes": len(concorrentes_linha),
             "diferenca_pct": round(diferenca_pct, 1) if diferenca_pct is not None else None,

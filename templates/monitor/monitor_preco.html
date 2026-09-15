@@ -108,6 +108,7 @@
             <td>{{ l.cidade }}</td>
             <td class="num">
                 R$ {{ l.nosso_preco }}
+                {% if l.dias_atras_nosso != None %}<br><span class="dist">{% if l.dias_atras_nosso == 0 %}coletado hoje{% else %}coletado há {{ l.dias_atras_nosso }} dia{{ l.dias_atras_nosso|pluralize }}{% endif %}</span>{% endif %}
                 {% if l.nossas_lojas|length > 1 %}
                 <details class="expansivel">
                     <summary><small>{{ l.nossas_lojas|length }} loja(s)</small></summary>
@@ -116,7 +117,10 @@
                         <li>
                             <span class="nome">{{ nl.loja|default:"loja não identificada" }}</span>
                             <span>R$ {{ nl.preco }}</span>
-                            <span class="dist">{% if nl.bairro %}{{ nl.bairro }}{% else %}{{ nl.distancia_centro }}{% endif %}</span>
+                            <span class="dist">
+                                {% if nl.bairro %}{{ nl.bairro }} · {% endif %}
+                                {% if nl.dias_atras == 0 %}hoje{% else %}há {{ nl.dias_atras }} dia{{ nl.dias_atras|pluralize }}{% endif %}
+                            </span>
                         </li>
                         {% endfor %}
                     </ul>
@@ -128,6 +132,7 @@
                     {{ l.concorrente_mais_barato }}
                     {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
                     {% if l.distancia_km_concorrente %}<span class="dist"> · {{ l.distancia_km_concorrente }} km de {{ l.loja_referencia }}</span>{% endif %}
+                    {% if l.dias_atras_concorrente != None %}<br><span class="dist">{% if l.dias_atras_concorrente == 0 %}coletado hoje{% else %}coletado há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}</span>{% endif %}
                     {% if l.n_concorrentes > 1 %}
                     <details class="expansivel">
                         <summary><small>+{{ l.n_concorrentes|add:"-1" }} outro(s)</small></summary>
@@ -142,6 +147,7 @@
                                         {% for d in cl.distancias_por_loja %}{{ d.loja }}: {% if d.km %}{{ d.km }} km{% else %}—{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
                                     {% else %}{{ cl.distancia_centro }} do centro
                                     {% endif %}
+                                    · {% if cl.dias_atras == 0 %}hoje{% else %}há {{ cl.dias_atras }} dia{{ cl.dias_atras|pluralize }}{% endif %}
                                 </span>
                             </li>
                             {% endfor %}
