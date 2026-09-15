@@ -57,10 +57,20 @@ def monitor_preco(request):
         for l in Loja.objects.filter(ativa=True).order_by("cidade", "nome")
     ]
 
+    loja_id_int = int(loja_id) if loja_id else None
+    if loja_id_int:
+        # a loja já implica cidade/bandeira -- mostra os dropdowns
+        # refletindo a loja de verdade, não um valor da URL que o
+        # serviço vai ignorar (evita a tela "mentir" sobre o filtro
+        # aplicado -- ver bug corrigido em montar_comparativo).
+        loja_escolhida = next((l for l in lojas if l["id"] == loja_id_int), None)
+        if loja_escolhida:
+            cidade, bandeira = loja_escolhida["cidade"], loja_escolhida["bandeira"]
+
     linhas = montar_comparativo(
         cidade=cidade, bandeira=bandeira, classificacao=classificacao,
         subclassificacao=subclassificacao, situacao=situacao,
-        loja_id=int(loja_id) if loja_id else None, bairro=bairro,
+        loja_id=loja_id_int, bairro=bairro,
     )
 
     context = {
@@ -76,7 +86,7 @@ def monitor_preco(request):
         "classificacao_selecionada": classificacao,
         "subclassificacao_selecionada": subclassificacao,
         "situacao_selecionada": situacao,
-        "loja_selecionada": int(loja_id) if loja_id else None,
+        "loja_selecionada": loja_id_int,
         "bairro_selecionado": bairro,
         "detalhe_aberto": detalhe,
         "querystring_sem_detalhe": querystring_sem_detalhe,

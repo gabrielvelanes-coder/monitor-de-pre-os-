@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 from apps.captacao.models import PrecoCaptado
+from apps.lojas.models import Loja
 from apps.produtos.models import Produto
 
 
@@ -60,7 +61,21 @@ def montar_comparativo(
     nossos_qs = PrecoCaptado.objects.filter(rede__tipo="nossa", preco__isnull=False)
     conc_qs = PrecoCaptado.objects.filter(rede__tipo="concorrente", preco__isnull=False)
     if loja_id:
+        # BUG REAL encontrado 15/09/26: escolher Loja + Cidade ao mesmo
+        # tempo, com a loja sendo de OUTRA cidade, quebrava a comparação
+        # inteira em silêncio -- nossos_qs ficava só com loja_id (cidade
+        # real da loja), mas conc_qs aplicava o parâmetro `cidade` da URL
+        # por fora, sem relação com a loja. Resultado: nenhum concorrente
+        # nunca batia com nenhum EAN (chaves (ean, cidade) de universos
+        # diferentes), "itens comparados" continuava normal mas "mais
+        # caros" ia pra 0 sem nenhum aviso -- parecia que não tinha
+        # concorrente na região, quando na verdade era o filtro quebrado.
+        # Loja implica cidade/bandeira -- ignora os parâmetros da URL pra
+        # cidade/bandeira quando uma loja está selecionada, e usa a
+        # cidade REAL da loja pros concorrentes também.
         nossos_qs = nossos_qs.filter(loja_id=loja_id)
+        loja_obj = Loja.objects.filter(id=loja_id).only("cidade").first()
+        cidade = loja_obj.cidade if loja_obj else cidade
     else:
         if cidade:
             nossos_qs = nossos_qs.filter(cidade_busca=cidade)
