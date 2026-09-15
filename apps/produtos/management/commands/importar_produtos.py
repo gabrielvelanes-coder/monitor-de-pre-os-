@@ -19,6 +19,10 @@ def _normalizar_codigo(valor) -> str:
     return texto[:-2] if texto.endswith(".0") else texto
 
 
+def _normalizar_descricao(valor) -> str:
+    return " ".join(str(valor or "").strip().upper().split())
+
+
 class Command(BaseCommand):
     help = (
         "Cruza o cadastro base de estoque (EAN, preço de venda, fabricante) com a "
@@ -53,7 +57,35 @@ class Command(BaseCommand):
         criados, atualizados = 0, 0
         vistos: set[str] = set()  # chaves de etiqueta já cobertas pelo loop da árvore
 
-        for _, row in df_arvore.iterrows():
+        # BUG REAL encontrado 15/09/26: o "Código" da árvore mercadológica
+        # e a "Etiqueta" do cadastro de estoque não são o mesmo valor pro
+        # MESMO produto físico em boa parte dos casos (ex. MOUNJARO 5MG:
+        # árvore usa '124037', estoque usa '104644') -- o join por
+        # etiqueta/EAN falhava silenciosamente e o produto virava "sem
+        # classificação" mesmo a árvore tendo a classificação certa numa
+        # OUTRA linha. Medido: 26.936 produtos "sem classificação"
+        # (R$ 16M em vendas, 36% do total -- a MAIOR "classificação" da
+        # tela de Relevância era essa) tinham 100% um "gêmeo" com a MESMA
+        # DESCRIÇÃO já classificado pela árvore. Corrigido: guarda a
+        # classificação por descrição normalizada durante o loop da
+        # árvore, usa como fallback pro cadastro de estoque que não bateu
+        # por código. Só 30 descrições (0,07%) têm classificação ambígua
+        # (2+ classificações diferentes pra mesma descrição, ex. remédio
+        # RX vs USO CONTÍNUO) -- essas ficam de fora do fallback (mantidas
+        # sem classificação, não dá pra adivinhar qual delas é a certa).
+        classificacoes_vistas: dict[str, set[str]] = {}
+        linhas_arvore = list(df_arvore.iterrows())
+        for _, row in linhas_arvore:
+            cc = str(row.get("Classificação") or "").strip()
+            if cc:
+                desc_norm = _normalizar_descricao(row.get("Descrição"))
+                if desc_norm:
+                    classificacoes_vistas.setdefault(desc_norm, set()).add(cc)
+        classificacao_por_descricao = {
+            desc: next(iter(ccs)) for desc, ccs in classificacoes_vistas.items() if len(ccs) == 1
+        }
+
+        for _, row in linhas_arvore:
             chaves = chaves_possiveis(row.get("Código"))
             if not chaves:
                 continue
@@ -90,10 +122,10 @@ class Command(BaseCommand):
             criados += created
             atualizados += not created
 
-        # Produtos do cadastro de estoque que a árvore não classificou --
-        # importa mesmo assim (sem classificação), pra não sumir do
-        # Monitor de Preço por falta de categoria.
-        sem_classificacao = 0
+        # Produtos do cadastro de estoque que a árvore não classificou por
+        # CÓDIGO -- tenta recuperar a classificação pela descrição (ver
+        # comentário acima) antes de aceitar "sem classificação" de vez.
+        sem_classificacao, recuperados_por_descricao = 0, 0
         for _, row in df_estoque.iterrows():
             chaves = chaves_possiveis(row.get("Etiqueta"))
             if chaves & vistos:
@@ -102,23 +134,37 @@ class Command(BaseCommand):
             if not ean or ean.lower() == "nan":
                 continue
             etiqueta = _normalizar_codigo(row.get("Etiqueta"))
-            _, created = Produto.objects.update_or_create(
-                ean=ean,
-                defaults={
-                    "etiqueta": etiqueta,
-                    "descricao": str(row.get("Produto") or "").strip(),
-                    "fabricante": str(row.get("Fabricante") or "").strip(),
-                    "preco_venda_atual": parse_decimal(row.get("Preço Venda")),
-                    "preco_referencial": parse_decimal(row.get("Preço Referencial")),
-                },
-            )
+            descricao = str(row.get("Produto") or "").strip()
+            classificacao_completa = classificacao_por_descricao.get(_normalizar_descricao(descricao), "")
+
+            defaults = {
+                "etiqueta": etiqueta,
+                "descricao": descricao,
+                "fabricante": str(row.get("Fabricante") or "").strip(),
+                "preco_venda_atual": parse_decimal(row.get("Preço Venda")),
+                "preco_referencial": parse_decimal(row.get("Preço Referencial")),
+            }
+            if classificacao_completa:
+                defaults["classificacao_completa"] = classificacao_completa
+                defaults["classificacao"] = extrair_classificacao_nivel1(classificacao_completa)
+                defaults["subclassificacao"] = extrair_subclassificacao_nivel2(classificacao_completa)
+
+            _, created = Produto.objects.update_or_create(ean=ean, defaults=defaults)
             criados += created
             atualizados += not created
-            sem_classificacao += created
+            if classificacao_completa:
+                recuperados_por_descricao += 1
+            else:
+                sem_classificacao += 1
 
         self.stdout.write(self.style.SUCCESS(f"{criados} produto(s) criado(s), {atualizados} atualizado(s)."))
+        if recuperados_por_descricao:
+            self.stdout.write(self.style.SUCCESS(
+                f"{recuperados_por_descricao} produto(s) recuperaram classificação via descrição "
+                f"(código não batia entre os 2 cadastros, mas a descrição sim)."
+            ))
         if sem_classificacao:
             self.stdout.write(self.style.WARNING(
-                f"{sem_classificacao} produto(s) do cadastro de estoque sem classificação "
-                f"(não bateram com nenhuma linha da árvore mercadológica)."
+                f"{sem_classificacao} produto(s) do cadastro de estoque sem classificação de "
+                f"verdade (não bateram nem por código nem por descrição)."
             ))

@@ -114,6 +114,11 @@ TIME_ZONE = 'America/Recife'
 
 USE_I18N = True
 
+# Sem isso, floatformat/número em template ignora o locale pt-br e sai
+# sem separador de milhar ("16036112.48" em vez de "16.036.112,48") --
+# achado do Gabriel vendo as tabelas de Custo x Margem/Relevância.
+USE_THOUSAND_SEPARATOR = True
+
 USE_TZ = True
 
 
