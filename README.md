@@ -188,3 +188,18 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     Quando 2+ lojas distintas estão envolvidas, o resumo não mostra mais
     nenhum número solto (era enganoso) — o detalhe expandido mostra a
     distância calculada em relação a CADA loja nossa individualmente.
+- **BUG REAL corrigido (mesma sessão): 36% da venda caía em "sem
+  classificação".** Gabriel notou que MOUNJARO aparecia sem classificação
+  na Relevância mesmo o ERP dele mostrando a classificação certa. Causa:
+  "Código" da árvore mercadológica e "Etiqueta" do cadastro de estoque
+  não são o mesmo valor pro mesmo produto físico em boa parte dos casos
+  (Mounjaro: 124037 vs 104644) — o join por código falhava
+  silenciosamente. 26.936 produtos "sem classificação" (R$ 16M em vendas,
+  36% do total, a MAIOR "classificação" da tela) tinham 100% um gêmeo com
+  a MESMA DESCRIÇÃO já classificado. `importar_produtos` agora usa
+  descrição normalizada como fallback quando o código não bate (30
+  descrições ambíguas, 0,07%, ficam de fora do fallback). Reimportado:
+  "sem classificação" caiu de R$ 16.036.112,48 pra R$ 38.702,59.
+- **`USE_THOUSAND_SEPARATOR = True`** (`config/settings.py`) — números
+  apareciam sem separador de milhar ("16036112.48"); com pt-br + esse
+  flag, formata sozinho em toda a aplicação ("16.036.112,48").
