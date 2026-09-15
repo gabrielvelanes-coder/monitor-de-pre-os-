@@ -60,14 +60,23 @@ selecionada.
   reimportar quando o Gabriel atualizar lá.
 - `_cadastro_arvore_mercadologica.xlsx` / `_cadastro_base_estoque.xlsx` —
   cópias das mesmas usadas pelo robo_cotacao/Streamlit.
-- `vendas <mês>.xls` (jan-jul/2026, 1 arquivo por mês, todas as lojas, 2
-  abas cada por causa do limite de 65.536 linhas do .xls) — relatório
-  "Análise de Venda por Item" **com** `Cód. Un. Neg.` (loja) e `Ano-mês`,
-  diferente do primeiro arquivo que foi mandado (`vendas por item
-  2026.xls`, na raiz de `MONITOR DE PRECOS\`, esse sem quebra — não é mais
-  usado, o correto é o `vendas <mês>.xls`).
-  - **Faltam agosto e setembro/2026** — não foram mandados ainda
-    (confirmar se é porque o mês não fechou ou só não deu tempo de gerar).
+- `vendas <mês>.xls` (todas as lojas, 2 abas cada por causa do limite de
+  65.536 linhas do .xls) — relatório "Análise de Venda por Item" **com**
+  `Cód. Un. Neg.` (loja) e `Ano-mês`, diferente do primeiro arquivo que
+  foi mandado (`vendas por item 2026.xls`, na raiz de `MONITOR DE
+  PRECOS\`, esse sem quebra — não é mais usado).
+  - **ACHADO 14/09/26: só `vendas janeiro.xls` e `vendas julho.xls` têm
+    dado de verdade.** `vendas fevereiro/março/abril/maio/junho.xls` têm
+    nomes diferentes mas são todos a MESMA exportação de janeiro por
+    dentro (`Ano-mês` = '2026-01' nos 5, conferido linha a linha, não só
+    pelo título) — o Gabriel deve ter reexportado sem trocar o filtro de
+    mês no ERP antes de salvar. Só entrou no banco 1 cópia de cada mês
+    real (a constraint `loja+codigo_erp+ano_mes` absorveu as duplicatas
+    silenciosamente) — **156.042 linhas reais** (78.927 jan + 77.115 jul),
+    não os "550.677 linhas jan-jul" que constavam aqui antes. **Pendente:
+    Gabriel reexportar fev/mar/abr/mai/jun corretamente.**
+  - **Faltam agosto e setembro/2026** — setembro só vai até 14/09 (mês em
+    andamento), agosto ainda não foi mandado.
 - **Pendente:** relatório de histórico de entrada (compra) do ERP, pra
   alimentar a 2ª tela (Análise de Entradas) — ainda não implementada, nem
   a regra de "o que conta como variação relevante" foi definida.
@@ -85,15 +94,16 @@ selecionada.
   `robo_cotacao/agendador_termos.py`). 910 itens já têm nosso preço +
   concorrência comparável; 383 hoje mais caros que o concorrente mais barato
   da região.
-- **Relevância por Classificação implementada** (`/relevancia/`): 550.677
-  linhas de venda (jan-jul/26, todas as lojas) cruzadas com 39.854 produtos
-  do cadastro (24.595 com classificação via árvore mercadológica, 17.508
-  só com EAN/preço, sem classificação — cadastro incompleto no ERP, não é
-  bug). 20 classificações (nível logo abaixo de "ARVORE NOVA"), cada uma
-  com ranking de itens por % de participação na própria categoria +
-  marcação "relevante" (curva ABC calculada na venda real, até 80%
-  acumulado). Maior classificação por venda: Propagado (R$ 9,7M no
-  período).
+- **Relevância por Classificação implementada** (`/relevancia/`): dado real
+  hoje é só **jan + jul/26** (ver achado acima), 156.042 linhas, cruzadas
+  com 71.643 produtos do cadastro (44.707 com classificação, usando a
+  versão mais completa dos cadastros — `BASE CADASTRO COM GRUPOS/EAN.xlsx`
+  do projeto de Perdas, bem maiores que as cópias que estavam no
+  robo_cotacao). 20 classificações (nível logo abaixo de "ARVORE NOVA"),
+  cada uma com ranking de itens por % de participação na própria categoria
+  + marcação "relevante" (curva ABC calculada na venda real, até 80%
+  acumulado). Números de venda por classificação **vão mudar** assim que
+  fev-jun entrarem de verdade.
 - Custo x Margem por loja/bandeira/cidade: dados já disponíveis
   (`VendaItem.venda/custo/lucro`), tela ainda não construída — próximo
   passo natural, avisar se é pra fazer agora.
