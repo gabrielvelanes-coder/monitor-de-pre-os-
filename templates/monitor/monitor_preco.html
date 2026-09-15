@@ -88,16 +88,17 @@
 {% if not linhas %}
     <div class="vazio">Nenhum item captado ainda com esse filtro.</div>
 {% else %}
-<table>
+<input type="text" class="campo-busca" data-filtro-tabela="tabela-monitor" placeholder="Buscar por EAN, produto, concorrente...">
+<table id="tabela-monitor" class="tabela-interativa">
     <thead>
         <tr>
-            <th>EAN</th>
-            <th>Produto</th>
-            <th>Cidade</th>
-            <th class="num">Nosso preço</th>
-            <th>Concorrente mais barato</th>
-            <th class="num">Preço concorrente</th>
-            <th class="num">Diferença</th>
+            <th data-ordenavel>EAN</th>
+            <th data-ordenavel>Produto</th>
+            <th data-ordenavel>Cidade</th>
+            <th class="num" data-ordenavel>Nosso preço</th>
+            <th data-ordenavel>Concorrente mais barato</th>
+            <th class="num" data-ordenavel>Preço concorrente</th>
+            <th class="num" data-ordenavel>Diferença</th>
             <th></th>
         </tr>
     </thead>
@@ -149,7 +150,7 @@
             </td>
         </tr>
         {% if l.chave == detalhe_aberto %}
-        <tr>
+        <tr class="linha-detalhe">
             <td colspan="8">
                 <div class="painel-detalhe">
                     <div>
