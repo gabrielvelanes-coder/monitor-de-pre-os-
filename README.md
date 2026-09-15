@@ -216,3 +216,48 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
   acento sempre). Novo filtro "Bairro" na tela, igual Loja/Cidade/
   Classificação (Gabriel confirmou: reusar a tabela existente, não uma
   tela dedicada).
+- **Densidade da tabela reduzida** (Gabriel: "não entendi nada" vendo 2
+  `<details>` abertos com texto corrido): linha resumida enxuta, "ver
+  detalhes" abre painel largo (`<tr colspan>`) com 2 mini-tabelas de
+  verdade (Nossas lojas | Concorrentes). Distância ambígua (2+ lojas)
+  virou "distância até a loja mais próxima" (1 número, rotulado) em vez
+  de listar todas as combinações.
+- **Distância "0,91 km do centro" era geocodificação imprecisa
+  disfarçada:** 5 das 24 lojas (e vários concorrentes) geocodificam pro
+  MESMO ponto exato via Nominatim (não resolve endereço no nível da rua
+  em boa parte de Itabuna/Ilhéus/Ipiaú, cai pro centroide do bairro) —
+  distância haversine virava 0,0km (falsy no template, caía num
+  fallback genérico sem relação com loja nenhuma). Agora rotulado
+  explicitamente "mesma região de Loja X (sem precisão de endereço)".
+- **Tabela interativa**: ordenar clicando no cabeçalho + busca
+  instantânea, `static/js/tabela.js` (mesmo padrão do Painel de
+  Ofertas, reimplementado — projetos não compartilham código). Cuidado
+  extra: o painel de detalhe (`<tr class="linha-detalhe">`) precisa
+  mover/esconder junto da linha-mãe ao ordenar/filtrar.
+- **Auditoria 360 (Gabriel pediu depois de achar 2 problemas na mesma
+  hora — filtro Classificação trazendo item de outra categoria, e
+  "loja não identificada" persistente):**
+  - **BUG REAL GRANDE em `apps/produtos`:** o "Código" da árvore
+    mercadológica é um identificador INTERNO do ERP que é REAPROVEITADO
+    com o tempo pra produtos diferentes (ex. código 78881 = "SAB LIQ
+    REXONA..." na árvore, mas "ABS ALWAYS..." no estoque, mais atual —
+    zero palavra em comum). O join por código vinha herdando descrição/
+    classificação ERRADA silenciosamente — **26.482 produtos (37% do
+    catálogo inteiro!)** tinham esse problema, bem maior que o achado
+    anterior (que só pegava código SEM nenhum match, não código com
+    match ERRADO). Corrigido: quando árvore e estoque não têm nenhuma
+    palavra em comum, usa a descrição do estoque (mais atual) e tenta
+    recuperar a classificação certa pela descrição (mesmo mecanismo já
+    existente). "Sem classificação de verdade" caiu pra 92 produtos.
+  - **BUG REAL em `vincular_lojas_captacao`:** comparava número de rua
+    por SUBSTRING ("2" in endereço) — número curto batia contra
+    QUALQUER endereço que contivesse aquele dígito em outro número
+    maior ("128", "1299", "428A", "32"), virando "ambíguo" por engano
+    mesmo tendo 1 match exato de verdade. Corrigido pra igualdade exata
+    do número extraído. Taxa de vínculo subiu de 85% pra **91%**, zero
+    ambíguos (eram 138 falsos positivos).
+  - Confirmado que parte do "sem vínculo" restante é dado real
+    incompleto, não bug: ex. CARVEDILOL tem 1 registro Ultra Popular em
+    endereço que não bate com nenhuma das 2 lojas Ultra Popular
+    cadastradas em Itabuna — cadastro de loja incompleto, não erro de
+    lógica.
