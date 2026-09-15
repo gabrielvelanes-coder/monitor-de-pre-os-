@@ -203,3 +203,16 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
 - **`USE_THOUSAND_SEPARATOR = True`** (`config/settings.py`) — números
   apareciam sem separador de milhar ("16036112.48"); com pt-br + esse
   flag, formata sozinho em toda a aplicação ("16.036.112,48").
+- **Filtro por Bairro (mesma sessão):** Gabriel deu o exemplo de variação
+  de preço DENTRO da mesma cidade (leite mais caro num bairro que no
+  Centro) — oportunidade que a granularidade por cidade não capturava.
+  Novo `manage.py extrair_bairros_captacao` (roda automático no fim de
+  `sincronizar_captacao`): o robô não guarda bairro separado, só o
+  endereço bruto — extrai via regex (99,6% de acerto, 10.384 de 10.428).
+  **Achado no caminho:** o mesmo bairro aparecia grafado com e sem
+  acento em capturas diferentes ("SAO CAETANO" 1287x, "SÃO CAETANO"
+  229x, provável inconsistência do próprio HTML do Preço da Hora) —
+  fragmentava o filtro em 2 opções pro mesmo lugar; normalizado (tira
+  acento sempre). Novo filtro "Bairro" na tela, igual Loja/Cidade/
+  Classificação (Gabriel confirmou: reusar a tabela existente, não uma
+  tela dedicada).
