@@ -8,6 +8,9 @@ preço de entrada (compra) que merecem olhar.
 Projeto separado, git próprio (não reaproveita código do robo_cotacao nem dos
 outros painéis — só dados e regras de negócio já validadas).
 
+Repositório remoto: https://github.com/gabrielvelanes-coder/monitor-de-pre-os-
+(criado e conectado 16/09/26, ver seção Pendências → Backup/infraestrutura).
+
 ## Como rodar
 
 ```
@@ -324,21 +327,23 @@ acima.
 
 **Backup/infraestrutura (achado 16/09/26, Gabriel perguntou "se meu PC
 quebrar, perco tudo?"):**
-- `monitor-precos` **não tem repositório remoto** (GitHub) — todo o
-  histórico de commits só existe no disco local. Risco real de perda
-  total se a máquina falhar.
-- `robo_cotacao` tem remoto (GitHub, `gabrielvelanes-coder/robo_cotacao`)
-  mas estava **5 commits atrasado** (fixes de 15-16/09 não enviados) +
-  2 arquivos modificados sem commit (`app.py`, `catalogo_produtos.py`,
-  não são mudanças dessa sessão).
+- ~~`monitor-precos` sem repositório remoto~~ — **resolvido 16/09/26.**
+  Gabriel criou https://github.com/gabrielvelanes-coder/monitor-de-pre-os-
+  (`gh` CLI não está instalado nessa máquina, então ele criou pelo site e
+  rodou `git remote add` + `git push -u origin master` manualmente no
+  PowerShell — o `git remote add` daqui do Claude Code foi bloqueado pelo
+  classificador de modo automático). 284 objetos enviados, histórico
+  completo (commit `207258c`) confirmado nos dois lados.
+- ~~`robo_cotacao` 5 commits atrasado~~ — **resolvido 16/09/26**, `git
+  push origin main` enviado sem problema (repositório já existia).
+  Ainda tem 2 arquivos modificados sem commit lá (`app.py`,
+  `catalogo_produtos.py`, não são mudanças dessa sessão) — não mexido.
 - Os bancos de dado de verdade (`db.sqlite3` 146MB, `_precos_continuos.
-  sqlite3` 8MB) **nunca estão no Git** (é dado, não código, gitignored
-  de propósito) — a única proteção é o OneDrive sincronizar direito, o
-  que pode atrasar num banco escrito a cada 30min pelo robô. Sem
-  confirmação de que o sync está 100% em dia.
-- Perguntado ao Gabriel se quer que eu já envie os commits pendentes do
-  robô e crie um repositório novo pro monitor-precos — aguardando
-  resposta.
+  sqlite3` 8MB) **continuam nunca indo pro Git** (é dado, não código,
+  gitignored de propósito) — a única proteção deles é o OneDrive
+  sincronizar direito, o que pode atrasar num banco escrito a cada
+  30min pelo robô. Sem confirmação de que o sync está 100% em dia —
+  ainda uma pendência real, só o CÓDIGO ficou protegido hoje.
 
 **Telas ainda não construídas:**
 - **Análise de Entradas** — nem o relatório de origem (histórico de
