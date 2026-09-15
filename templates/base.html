@@ -72,15 +72,17 @@
         .tag.barato { background: var(--verde-bg); color: var(--verde); }
         .tag.neutro { background: var(--superficie2); color: var(--texto-fraco); }
         .vazio { padding: 40px; text-align: center; color: var(--texto-fraco); }
-        .lista-detalhe { margin: 0; padding-left: 0; list-style: none; font-size: 12.5px; }
-        .lista-detalhe li { padding: 3px 0; color: var(--texto-fraco); display: flex; gap: 8px; }
-        .lista-detalhe li .nome { color: var(--texto); flex: 1; }
-        details.expansivel summary {
-            cursor: pointer; color: var(--texto);
-        }
-        details.expansivel summary::-webkit-details-marker { color: var(--texto-fraco); }
-        details.expansivel[open] summary { margin-bottom: 4px; }
         .dist { color: var(--texto-fraco); font-size: 12px; }
+        .painel-detalhe {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            padding: 16px 4px;
+        }
+        .painel-detalhe h3 {
+            margin: 0 0 8px; font-size: 12px; text-transform: uppercase;
+            letter-spacing: .03em; color: var(--texto-fraco); font-weight: 600;
+        }
+        .painel-detalhe table { background: var(--superficie2); }
+        .painel-detalhe th { background: var(--bg); }
     </style>
 </head>
 <body>

@@ -123,11 +123,15 @@ def montar_comparativo(
             })
         nossas_lojas.sort(key=lambda x: x["preco"])
 
-        # lojas distintas com coordenada, pra saber se a distância do
-        # concorrente vai ser inequívoca (1 loja só) ou ambígua (2+)
-        lojas_geo = {(nl["loja_id"], nl["loja"]): (nl["_lat"], nl["_lon"])
-                     for nl in nossas_lojas if nl["_lat"] is not None}
-        loja_referencia = next(iter(lojas_geo))[1] if len(lojas_geo) == 1 else None
+        # lojas distintas com coordenada -- a distância do concorrente é
+        # sempre a MENOR entre elas (loja nossa mais próxima), rotulada
+        # com o nome dessa loja. Simplificado 15/09/26: a versão anterior
+        # mostrava TODAS as combinações loja×concorrente quando havia 2+
+        # lojas ("Loja 2: — · Loja 4: 0,5 km · Loja 3: —") -- Gabriel viu
+        # e não conseguiu interpretar. Um número só, com rótulo, já
+        # responde a pergunta real ("essa concorrência está perto de
+        # alguma loja nossa?").
+        lojas_geo = [(nl["loja"], nl["_lat"], nl["_lon"]) for nl in nossas_lojas if nl["_lat"] is not None]
 
         concorrentes_linha = []
         for p in concorrentes.get((ean, cid), []):
@@ -139,16 +143,13 @@ def montar_comparativo(
                 "bairro": p.bairro,
                 "dias_atras": _dias_atras(p.atualizado_em),
                 "distancia_km": None,
-                "distancias_por_loja": [],
+                "loja_mais_proxima": None,
             }
-            if len(lojas_geo) == 1:
-                lat_ref, lon_ref = next(iter(lojas_geo.values()))
-                item["distancia_km"] = _distancia_km(lat_ref, lon_ref, p.lat, p.lon)
-            elif len(lojas_geo) > 1:
-                item["distancias_por_loja"] = [
-                    {"loja": nome, "km": _distancia_km(lat, lon, p.lat, p.lon)}
-                    for (_lid, nome), (lat, lon) in lojas_geo.items()
-                ]
+            distancias = [(nome, _distancia_km(lat, lon, p.lat, p.lon)) for nome, lat, lon in lojas_geo]
+            distancias = [(nome, km) for nome, km in distancias if km is not None]
+            if distancias:
+                nome, km = min(distancias, key=lambda t: t[1])
+                item["distancia_km"], item["loja_mais_proxima"] = km, nome
             concorrentes_linha.append(item)
         concorrentes_linha.sort(key=lambda x: x["preco"])
 
@@ -165,6 +166,7 @@ def montar_comparativo(
 
         produto = produto_por_ean.get(ean)
         linhas.append({
+            "chave": f"{ean}|{cid}",
             "ean": ean,
             "cidade": cid,
             "titulo": titulo_por_ean.get(ean, ""),
@@ -172,12 +174,12 @@ def montar_comparativo(
             "subclassificacao": produto.subclassificacao if produto else "",
             "nosso_preco": round(nosso_medio, 2),
             "nossas_lojas": nossas_lojas,
-            "loja_referencia": loja_referencia,
             "dias_atras_nosso": min((nl["dias_atras"] for nl in nossas_lojas), default=None),
             "concorrente_mais_barato": menor["estabelecimento"] if menor else None,
             "concorrente_rede": menor["rede"] if menor else None,
             "preco_concorrente": menor["preco"] if menor else None,
             "distancia_km_concorrente": menor["distancia_km"] if menor else None,
+            "loja_mais_proxima": menor["loja_mais_proxima"] if menor else None,
             "dias_atras_concorrente": menor["dias_atras"] if menor else None,
             "concorrentes": concorrentes_linha,
             "n_concorrentes": len(concorrentes_linha),

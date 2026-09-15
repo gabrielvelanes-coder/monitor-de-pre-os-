@@ -98,6 +98,7 @@
             <th>Concorrente mais barato</th>
             <th class="num">Preço concorrente</th>
             <th class="num">Diferença</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -108,55 +109,21 @@
             <td>{{ l.cidade }}</td>
             <td class="num">
                 R$ {{ l.nosso_preco }}
-                {% if l.nossas_lojas|length == 1 %}
-                    <br><span class="dist">{{ l.nossas_lojas.0.loja|default:"loja não identificada" }}</span>
-                {% endif %}
-                {% if l.dias_atras_nosso != None %}<br><span class="dist">{% if l.dias_atras_nosso == 0 %}coletado hoje{% else %}coletado há {{ l.dias_atras_nosso }} dia{{ l.dias_atras_nosso|pluralize }}{% endif %}</span>{% endif %}
-                {% if l.nossas_lojas|length > 1 %}
-                <details class="expansivel">
-                    <summary><small>{{ l.nossas_lojas|length }} loja(s)</small></summary>
-                    <ul class="lista-detalhe">
-                        {% for nl in l.nossas_lojas %}
-                        <li>
-                            <span class="nome">{{ nl.loja|default:"loja não identificada" }}</span>
-                            <span>R$ {{ nl.preco }}</span>
-                            <span class="dist">
-                                {% if nl.bairro %}{{ nl.bairro }} · {% endif %}
-                                {% if nl.dias_atras == 0 %}hoje{% else %}há {{ nl.dias_atras }} dia{{ nl.dias_atras|pluralize }}{% endif %}
-                            </span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </details>
-                {% endif %}
+                <br><span class="dist">
+                    {% if l.nossas_lojas|length == 1 %}{{ l.nossas_lojas.0.loja|default:"loja não identificada" }}
+                    {% else %}méd. de {{ l.nossas_lojas|length }} lojas
+                    {% endif %}
+                    {% if l.dias_atras_nosso != None %} · {% if l.dias_atras_nosso == 0 %}hoje{% else %}há {{ l.dias_atras_nosso }} dia{{ l.dias_atras_nosso|pluralize }}{% endif %}{% endif %}
+                </span>
             </td>
             <td>
                 {% if l.concorrente_mais_barato %}
                     {{ l.concorrente_mais_barato }}
                     {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
-                    {% if l.distancia_km_concorrente %}<span class="dist"> · {{ l.distancia_km_concorrente }} km de {{ l.loja_referencia }}</span>{% endif %}
-                    {% if l.dias_atras_concorrente != None %}<br><span class="dist">{% if l.dias_atras_concorrente == 0 %}coletado hoje{% else %}coletado há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}</span>{% endif %}
-                    {% if l.n_concorrentes > 1 %}
-                    <details class="expansivel">
-                        <summary><small>+{{ l.n_concorrentes|add:"-1" }} outro(s)</small></summary>
-                        <ul class="lista-detalhe">
-                            {% for cl in l.concorrentes %}
-                            <li>
-                                <span class="nome">{{ cl.estabelecimento }} <span class="dist">({{ cl.rede }}{% if cl.bairro %} — {{ cl.bairro }}{% endif %})</span></span>
-                                <span>R$ {{ cl.preco }}</span>
-                                <span class="dist">
-                                    {% if cl.distancia_km %}{{ cl.distancia_km }} km de {{ l.loja_referencia }}
-                                    {% elif cl.distancias_por_loja %}
-                                        {% for d in cl.distancias_por_loja %}{{ d.loja }}: {% if d.km %}{{ d.km }} km{% else %}—{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
-                                    {% else %}{{ cl.distancia_centro }} do centro
-                                    {% endif %}
-                                    · {% if cl.dias_atras == 0 %}hoje{% else %}há {{ cl.dias_atras }} dia{{ cl.dias_atras|pluralize }}{% endif %}
-                                </span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </details>
-                    {% endif %}
+                    <br><span class="dist">
+                        {% if l.distancia_km_concorrente %}{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }} · {% endif %}
+                        {% if l.dias_atras_concorrente != None %}{% if l.dias_atras_concorrente == 0 %}hoje{% else %}há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}{% endif %}
+                    </span>
                 {% else %}
                     —
                 {% endif %}
@@ -171,7 +138,57 @@
                     <span class="tag barato">{{ l.diferenca_pct }}%</span>
                 {% endif %}
             </td>
+            <td>
+                {% if l.n_concorrentes > 1 or l.nossas_lojas|length > 1 %}
+                    {% if l.chave == detalhe_aberto %}
+                        <a href="?{{ querystring_sem_detalhe }}">ocultar</a>
+                    {% else %}
+                        <a href="?{{ querystring_sem_detalhe }}{% if querystring_sem_detalhe %}&{% endif %}detalhe={{ l.chave|urlencode }}">ver detalhes</a>
+                    {% endif %}
+                {% endif %}
+            </td>
         </tr>
+        {% if l.chave == detalhe_aberto %}
+        <tr>
+            <td colspan="8">
+                <div class="painel-detalhe">
+                    <div>
+                        <h3>Nossas lojas</h3>
+                        <table>
+                            <thead><tr><th>Loja</th><th class="num">Preço</th><th>Bairro</th><th>Coletado</th></tr></thead>
+                            <tbody>
+                                {% for nl in l.nossas_lojas %}
+                                <tr>
+                                    <td>{{ nl.loja|default:"não identificada" }}</td>
+                                    <td class="num">R$ {{ nl.preco }}</td>
+                                    <td>{{ nl.bairro|default:"—" }}</td>
+                                    <td>{% if nl.dias_atras == 0 %}hoje{% else %}há {{ nl.dias_atras }} dia{{ nl.dias_atras|pluralize }}{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>Concorrentes</h3>
+                        <table>
+                            <thead><tr><th>Rede</th><th>Loja</th><th class="num">Preço</th><th>Distância</th><th>Coletado</th></tr></thead>
+                            <tbody>
+                                {% for cl in l.concorrentes %}
+                                <tr>
+                                    <td>{{ cl.rede }}</td>
+                                    <td>{{ cl.estabelecimento }}{% if cl.bairro %} <span class="dist">({{ cl.bairro }})</span>{% endif %}</td>
+                                    <td class="num">R$ {{ cl.preco }}</td>
+                                    <td>{% if cl.distancia_km %}{{ cl.distancia_km }} km de {{ cl.loja_mais_proxima }}{% else %}{{ cl.distancia_centro }} do centro{% endif %}</td>
+                                    <td>{% if cl.dias_atras == 0 %}hoje{% else %}há {{ cl.dias_atras }} dia{{ cl.dias_atras|pluralize }}{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        {% endif %}
         {% endfor %}
     </tbody>
 </table>

@@ -15,6 +15,11 @@ def monitor_preco(request):
     situacao = request.GET.get("situacao") or None
     loja_id = request.GET.get("loja") or None
     bairro = request.GET.get("bairro") or None
+    detalhe = request.GET.get("detalhe") or None
+
+    querystring = request.GET.copy()
+    querystring.pop("detalhe", None)
+    querystring_sem_detalhe = querystring.urlencode()
 
     cidades = list(
         PrecoCaptado.objects.exclude(cidade_busca="")
@@ -73,6 +78,8 @@ def monitor_preco(request):
         "situacao_selecionada": situacao,
         "loja_selecionada": int(loja_id) if loja_id else None,
         "bairro_selecionado": bairro,
+        "detalhe_aberto": detalhe,
+        "querystring_sem_detalhe": querystring_sem_detalhe,
         "total": len(linhas),
         "mais_caros": sum(1 for l in linhas if (l["diferenca_pct"] or 0) > 0),
         "sem_comparacao": sum(1 for l in linhas if l["diferenca_pct"] is None),
