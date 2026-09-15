@@ -303,6 +303,11 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     existia pro código de barras, aplicado aqui também.
   - Resultado: **maio 75.780 linhas, junho 74.934 linhas** — jan-jul
     completos agora, **536.854 linhas** no total.
+- **Agosto reenviado e importado (16/09/26, mesmo dia)** — "vendas novo
+  agosto 2026.xls", relatório certo dessa vez (13 colunas, Ano-mês
+  '2026-08' confirmado linha a linha). **74.558 linhas.** Mesmo
+  importador corrigido (nome de coluna) deu conta sem ajuste nenhum.
+  **jan-agosto completos agora, 611.412 linhas no total.**
 
 ## Pendências (16/09/2026)
 
@@ -311,15 +316,29 @@ sempre que resolver ou surgir uma nova, em vez de só no meio do log
 acima.
 
 **Dados de vendas (bloqueado no Gabriel):**
-- ~~Maio/junho~~ — **resolvido 16/09/26.** Maio reenviado ("vendas maio
-  novo 2026.xls") com o relatório certo; junho também. Achados 2 bugs
-  reais no importador nesse processo (ver log de código abaixo:
-  colunas trocadas de posição + loja "22.0"), corrigidos. **jan-jul
-  completos agora, 536.854 linhas.**
-- Reexportar **agosto** com o relatório certo ("Análise de Venda por
-  Item" COM quebra por loja e Ano-mês). Veio no relatório errado (sem a
-  coluna Ano-mês) na 1ª tentativa.
-- **Setembro** nunca foi mandado (nem parcial).
+- ~~Maio/junho/agosto~~ — **resolvido 16/09/26.** Todos os 3 reenviados
+  no relatório certo e importados (2 bugs reais achados e corrigidos no
+  importador nesse processo — colunas trocadas de posição + loja
+  "22.0", ver log acima). **jan-agosto completos, 611.412 linhas.**
+- **Setembro** nunca foi mandado (nem parcial) — só falta esse.
+
+**Backup/infraestrutura (achado 16/09/26, Gabriel perguntou "se meu PC
+quebrar, perco tudo?"):**
+- `monitor-precos` **não tem repositório remoto** (GitHub) — todo o
+  histórico de commits só existe no disco local. Risco real de perda
+  total se a máquina falhar.
+- `robo_cotacao` tem remoto (GitHub, `gabrielvelanes-coder/robo_cotacao`)
+  mas estava **5 commits atrasado** (fixes de 15-16/09 não enviados) +
+  2 arquivos modificados sem commit (`app.py`, `catalogo_produtos.py`,
+  não são mudanças dessa sessão).
+- Os bancos de dado de verdade (`db.sqlite3` 146MB, `_precos_continuos.
+  sqlite3` 8MB) **nunca estão no Git** (é dado, não código, gitignored
+  de propósito) — a única proteção é o OneDrive sincronizar direito, o
+  que pode atrasar num banco escrito a cada 30min pelo robô. Sem
+  confirmação de que o sync está 100% em dia.
+- Perguntado ao Gabriel se quer que eu já envie os commits pendentes do
+  robô e crie um repositório novo pro monitor-precos — aguardando
+  resposta.
 
 **Telas ainda não construídas:**
 - **Análise de Entradas** — nem o relatório de origem (histórico de
