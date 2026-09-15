@@ -349,10 +349,10 @@ quebrar, perco tudo?"):**
   DB\` — como a cópia parada nunca muda de novo, o OneDrive consegue
   sincronizar ela até o fim. Mantém os últimos 10 backups de cada,
   apaga os mais velhos. Testado: integridade OK, contagem de linhas
-  bate com o banco real. **Rodar manual por ora** (`python
-  backup_bancos.py` dentro de `monitor-precos/`) — perguntado ao
-  Gabriel se quer virar Tarefa Agendada do Windows (mesmo padrão do
-  robô) pra rodar sozinho, aguardando resposta.
+  bate com o banco real. **Decisão do Gabriel (16/09/26): rodar
+  manual, não automatizar** (`python backup_bancos.py` dentro de
+  `monitor-precos/`) — rodar ao terminar sessões com bastante
+  importação/mudança de dado, não precisa de Tarefa Agendada.
 
 **Telas ainda não construídas:**
 - **Análise de Entradas** — nem o relatório de origem (histórico de
