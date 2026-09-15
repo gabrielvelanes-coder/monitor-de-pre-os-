@@ -108,6 +108,9 @@
             <td>{{ l.cidade }}</td>
             <td class="num">
                 R$ {{ l.nosso_preco }}
+                {% if l.nossas_lojas|length == 1 %}
+                    <br><span class="dist">{{ l.nossas_lojas.0.loja|default:"loja não identificada" }}</span>
+                {% endif %}
                 {% if l.dias_atras_nosso != None %}<br><span class="dist">{% if l.dias_atras_nosso == 0 %}coletado hoje{% else %}coletado há {{ l.dias_atras_nosso }} dia{{ l.dias_atras_nosso|pluralize }}{% endif %}</span>{% endif %}
                 {% if l.nossas_lojas|length > 1 %}
                 <details class="expansivel">

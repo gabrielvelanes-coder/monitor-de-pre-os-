@@ -25,9 +25,20 @@ def _extrair_bairro(endereco: str) -> str:
     'SÃO CAETANO' 229x) -- provável inconsistência do próprio HTML do
     Preço da Hora entre passadas. Sem normalizar, o filtro de bairro
     fragmenta o mesmo lugar em 2+ opções no dropdown. Tira acento sempre
-    (mantém maiúsculo, que já é o padrão do endereço bruto)."""
+    (mantém maiúsculo, que já é o padrão do endereço bruto).
+
+    2º BUG REAL encontrado (mesma investigação): uma minoria de endereços
+    (58 de 10.428, quase todos concorrente fora de Itabuna/Ilhéus/Ipiaú,
+    ex. Salvador) usa formato de CEP com faixa de numeração ("...DE 1 A
+    881...") que engana o regex e vaza número pro meio do bairro
+    capturado (ex. '1263 S CAETANO', 'ATE 881 431 CENTRO'). Bairro de
+    verdade não tem dígito -- rejeita a captura nesse caso (fica vazio,
+    mesmo tratamento de "não bateu o padrão", não quebra nada)."""
     m = _REGEX_BAIRRO.search(endereco or "")
-    return _sem_acento(m.group(1).strip()) if m else ""
+    if not m:
+        return ""
+    bairro = _sem_acento(m.group(1).strip())
+    return bairro if not re.search(r"\d", bairro) else ""
 
 
 class Command(BaseCommand):

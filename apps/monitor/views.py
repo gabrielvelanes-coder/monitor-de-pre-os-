@@ -28,9 +28,15 @@ def monitor_preco(request):
         Produto.objects.exclude(classificacao="")
         .values_list("classificacao", flat=True).distinct().order_by("classificacao")
     )
+    subclassificacoes_qs = Produto.objects.exclude(subclassificacao="")
+    if classificacao:
+        # cascata: só as subclassificações que existem DENTRO da
+        # classificação escolhida, não a lista inteira do catálogo --
+        # Gabriel notou que escolher "GENÉRICOS" ainda mostrava
+        # "ABSORVENTE"/"BALANÇA"/etc. sem relação nenhuma.
+        subclassificacoes_qs = subclassificacoes_qs.filter(classificacao=classificacao)
     subclassificacoes = list(
-        Produto.objects.exclude(subclassificacao="")
-        .values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
+        subclassificacoes_qs.values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
     )
     bairros = list(
         PrecoCaptado.objects.exclude(bairro="")
