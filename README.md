@@ -283,6 +283,26 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     Loja 21 `ativa=false`. **Vínculo de loja subiu de 91% pra 99,1%**
     (2.367 de 2.388). Captação resincronizada no processo: 10.585
     preços agora (era 10.428).
+- **Maio e junho reenviados e importados (16/09/26)** — 2 bugs reais
+  achados em `importar_vendas` no processo:
+  - **Colunas trocadas de posição:** o arquivo de maio veio com Loja e
+    Ano-mês na ordem invertida (mesmo nome de coluna, posição
+    diferente — ERP não exporta sempre igual). Importar por posição
+    cega (como era antes) teria lido "2026-05" como código de loja.
+    Corrigido: `importar_vendas` agora detecta a posição de cada
+    coluna pelo NOME (Ano-mês/Cód. Un. Neg./Cód. Barras.Etiq./etc. são
+    todas únicas — só as 3 colunas "%" repetidas, que nem usamos, são
+    ambíguas). A 2ª aba de cada arquivo não tem cabeçalho de texto
+    (limite de 65.536 linhas do .xls) — reaproveita a posição
+    detectada na 1ª aba do mesmo arquivo.
+  - **Código de loja virava "22.0"/"23.0":** quando o arquivo tem linha
+    em branco/"Total" na coluna de loja, o pandas lê a coluna inteira
+    como float (não dá pra ter NaN num int) — nunca batia com o
+    cadastro (2 dígitos). Perdeu TODA a 2ª aba de maio na 1ª tentativa
+    (10.246 linhas, todas de lojas 22+). Mesmo tratamento que já
+    existia pro código de barras, aplicado aqui também.
+  - Resultado: **maio 75.780 linhas, junho 74.934 linhas** — jan-jul
+    completos agora, **536.854 linhas** no total.
 
 ## Pendências (16/09/2026)
 
@@ -291,11 +311,14 @@ sempre que resolver ou surgir uma nova, em vez de só no meio do log
 acima.
 
 **Dados de vendas (bloqueado no Gabriel):**
-- Reexportar **maio/junho/agosto** com o relatório certo ("Análise de
-  Venda por Item" COM quebra por loja e Ano-mês — mesmo relatório que
-  gerou fev/mar/abr certos). Maio/agosto vieram no relatório errado
-  (sem a coluna Ano-mês); junho nunca foi reenviado depois do 1º achado
-  de duplicata.
+- ~~Maio/junho~~ — **resolvido 16/09/26.** Maio reenviado ("vendas maio
+  novo 2026.xls") com o relatório certo; junho também. Achados 2 bugs
+  reais no importador nesse processo (ver log de código abaixo:
+  colunas trocadas de posição + loja "22.0"), corrigidos. **jan-jul
+  completos agora, 536.854 linhas.**
+- Reexportar **agosto** com o relatório certo ("Análise de Venda por
+  Item" COM quebra por loja e Ano-mês). Veio no relatório errado (sem a
+  coluna Ano-mês) na 1ª tentativa.
 - **Setembro** nunca foi mandado (nem parcial).
 
 **Telas ainda não construídas:**
