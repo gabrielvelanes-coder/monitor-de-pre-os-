@@ -79,3 +79,42 @@ class PrecoCaptado(models.Model):
 
     def __str__(self):
         return f"{self.ean} — {self.estabelecimento} ({self.cidade_busca}): R$ {self.preco}"
+
+
+class PrecoHistorico(models.Model):
+    """1 snapshot por dia de cada `PrecoCaptado` -- criado porque
+    `PrecoCaptado` SOBRESCREVE (chave única ean+estabelecimento+endereço,
+    cada sincronização faz update na mesma linha), então o preço de ontem
+    já não existe em lugar nenhum hoje. Gabriel pediu (16/09/26) pra
+    guardar histórico pra poder ver evolução de preço no tempo -- decisão
+    dele: 1 snapshot por DIA (não por sincronização, que roda a cada
+    30min -- viraria milhões de linhas por semana sem necessidade
+    nenhuma), retenção de 1 ano (apagado pelo próprio
+    `snapshot_precos_historico` a cada rodada). Alimentado por
+    `manage.py snapshot_precos_historico`, rodando 1x/dia via Tarefa
+    Agendada (mesmo padrão de `sincronizar_captacao`)."""
+
+    data = models.DateField(db_index=True)
+    ean = models.CharField(max_length=20, db_index=True)
+    cidade_busca = models.CharField(max_length=60, blank=True, db_index=True)
+    tipo = models.CharField(max_length=20, blank=True)  # "nossa"/"concorrente" no momento do snapshot
+    rede_nome = models.CharField(max_length=60, blank=True)
+    estabelecimento = models.CharField(max_length=200, blank=True)
+    endereco = models.CharField(max_length=300, blank=True)
+    loja = models.ForeignKey(
+        Loja, null=True, blank=True, on_delete=models.SET_NULL, related_name="precos_historico"
+    )
+    preco = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["data", "ean", "estabelecimento", "endereco"], name="uniq_preco_historico"
+            )
+        ]
+        indexes = [models.Index(fields=["ean", "cidade_busca", "data"])]
+        verbose_name = "Preço histórico"
+        verbose_name_plural = "Preços históricos"
+
+    def __str__(self):
+        return f"{self.data} — {self.ean} — {self.estabelecimento}: R$ {self.preco}"

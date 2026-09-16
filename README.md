@@ -379,6 +379,35 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     completos, e EAN sem nenhum `VendaItem` vinculado (mostra "Sem dado
     de venda registrado pra esse produto nessas lojas." em vez de
     gráfico vazio).
+  - **Corrigido no mesmo dia:** a 1ª versão somava tudo numa linha só.
+    Gabriel viu o exemplo do ATROVENT (Loja 2/Loja 4/Loja 3) e pediu a
+    curva de CADA loja, não o total -- trocado por 1 sparkline compacta
+    por linha, dentro da própria tabela "Nossas lojas" (coluna nova
+    "Qtd. vendida/mês"), sem precisar de legenda/cor por loja porque o
+    nome já está na linha. Escala até 10 lojas (testado com COLETOR
+    UNIVERSAL) sem virar bagunça -- cada sparkline é independente,
+    função `svg_sparkline_quantidade` (services.py), 1 query só
+    agrupada por loja+mês (`montar_curvas_quantidade_por_loja`).
+- **Base do histórico de preço criada (16/09/26, mesmo dia).** Gabriel
+  aprovou o caminho 1 (tabela de histórico separada, 1 snapshot por dia,
+  retenção de 1 ano). Criado:
+  - **Modelo `PrecoHistorico`** (`apps/captacao/models.py`) — mesmos
+    campos-chave de `PrecoCaptado` (ean, cidade, rede, estabelecimento,
+    endereço, loja, preço) + `data` (DateField, 1 por dia, não por
+    sincronização — senão vira milhões de linhas por semana à toa).
+  - **`manage.py snapshot_precos_historico`** — copia o estado do dia de
+    `PrecoCaptado` pra `PrecoHistorico`, idempotente (rodar 2x no mesmo
+    dia não duplica, testado: 11.083 gravados na 1ª vez, 0 na 2ª) e já
+    apaga sozinho quem passou de 1 ano.
+  - **Tarefa Agendada `VelanesP_SnapshotHistoricoPrecos`**, 1x/dia às
+    23:30 (mesmo padrão das outras 2 tarefas do projeto) — testada rodando
+    de verdade via Agendador (`LastTaskResult=0`), não só manual.
+  - **O gráfico de evolução em si ainda não foi construído** — só tem 1
+    dia de histórico até agora (16/09/26), um gráfico de 1 ponto não diz
+    nada. Fica pendente até acumular alguns dias/semanas de dado; a
+    ideia é reaproveitar o mesmo padrão da curva de quantidade (sparkline
+    SVG dentro do painel de detalhe, sem tela nova) quando tiver dado
+    suficiente pra valer a pena.
 
 ## Pendências (16/09/2026)
 
@@ -443,16 +472,13 @@ quebrar, perco tudo?"):**
 **Decisões de produto em aberto:**
 - ~~Curva de quantidade das nossas lojas~~ — **resolvido 16/09/26.**
   Implementada dentro do painel "ver detalhes" (ver log acima).
-- **Histórico/série temporal** — hoje o Monitor de Preço só mostra o
-  estado ATUAL (snapshot), sem guardar histórico pra responder "estamos
-  ficando mais caros ao longo do tempo?". Discutido quando Gabriel
-  perguntou se a ferramenta está "boa pra decisão" — é mudança de
-  arquitetura (guardar séries temporais), decisão dele se entra na v1.
-  Gabriel voltou a mencionar interesse nisso (16/09/26, "gostei da
-  ideia do gráfico de histórico e evolução") mas pediu pra eu sugerir
-  onde entraria (tela separada? mesma tela? quanto de detalhe?) antes
-  de decidir — ainda sem arquitetura de armazenamento de série
-  temporal definida, pré-requisito pra qualquer versão disso.
+- **Histórico/série temporal** — ~~decisão de arquitetura~~ **tomada
+  16/09/26**: tabela `PrecoHistorico`, 1 snapshot/dia, retenção 1 ano
+  (ver log acima). Base de dado já rodando sozinha. **Falta só construir
+  o gráfico em cima** — aguardando acumular alguns dias/semanas de
+  histórico real (hoje só tem o snapshot de 16/09/26) antes de valer a
+  pena montar a curva. Quando tiver dado suficiente, entra no mesmo
+  painel de detalhe, mesmo padrão SVG da curva de quantidade.
 - **Acesso/deploy** — hoje só roda via `manage.py runserver` na máquina
   do Gabriel (`DEBUG=True`, sem host configurado). Se for pra outras
   pessoas do Grupo Velanes acessarem (gerente de loja, comprador),
