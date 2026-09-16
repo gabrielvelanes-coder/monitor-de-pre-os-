@@ -326,6 +326,29 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     (`LastTaskResult=0`), não só manual.
   - A tela agora sempre mostra **"dado mais recente: há N min"** no
     topo — a defasagem fica visível em vez de escondida.
+- **3 ajustes de UX depois da sincronização (16/09/26, mesmo dia):**
+  - **Cartões viraram filtro clicável.** Os 3 cartões de resumo (Itens
+    comparados / Mais caros / Sem concorrente) agora são links que
+    aplicam `situacao` na URL, preservando os outros filtros ativos.
+    Os números dos próprios cartões continuam mostrando sempre o
+    panorama GERAL (não encolhem ao clicar em "Sem concorrente", por
+    exemplo) — 2ª chamada a `montar_comparativo(situacao=None)` só
+    pra isso quando um filtro de situação está ativo
+    (`linhas_para_cartoes` em `views.py`). Testado ao vivo: os 2
+    filtros (mais_caro e sem_concorrente) mudam URL, dropdown e tabela
+    corretamente.
+  - **Botão "Sincronizar agora" virou ícone.** Era texto grande, agora
+    é um círculo pequeno (⟳) no canto — `.botao-icone` em
+    `base.html`.
+  - **Notificação some sozinha.** Mensagens de sucesso/erro (ex. "10993
+    preço(s) sincronizado(s)") desaparecem depois de 4s, CSS puro
+    (`.aviso-some` + `@keyframes aviso-desaparecer`, sem JS). Validado
+    via Web Animations API (`getAnimations()`) forçando o relógio da
+    animação até o fim — o Chrome controlado por automação trava o
+    avanço de tempo de animações CSS em abas sem foco real de janela,
+    então não dava pra ver o fade rolar "ao vivo" no teste, mas o
+    resultado final (opacity 0, visibility hidden no fim do delay+
+    duração) bateu certinho.
 
 ## Pendências (16/09/2026)
 
@@ -382,11 +405,23 @@ quebrar, perco tudo?"):**
   nova de verdade, não é extensão pequena.
 
 **Decisões de produto em aberto:**
+- **Curva de quantidade das nossas lojas** — Gabriel pediu (16/09/26)
+  pra ver a curva de quantidade vendida por produto/loja (dado já
+  existe em `VendaItem`, jan-agosto). Falta decidir onde entra na tela
+  (inclinação: dentro do painel "ver detalhes" já existente, pra não
+  poluir, mesma preocupação de densidade que levou ao redesign desse
+  painel) e como (Chart.js, ainda não usado em nenhuma tela do
+  monitor-precos). Não iniciado.
 - **Histórico/série temporal** — hoje o Monitor de Preço só mostra o
   estado ATUAL (snapshot), sem guardar histórico pra responder "estamos
   ficando mais caros ao longo do tempo?". Discutido quando Gabriel
   perguntou se a ferramenta está "boa pra decisão" — é mudança de
   arquitetura (guardar séries temporais), decisão dele se entra na v1.
+  Gabriel voltou a mencionar interesse nisso (16/09/26, "gostei da
+  ideia do gráfico de histórico e evolução") mas pediu pra eu sugerir
+  onde entraria (tela separada? mesma tela? quanto de detalhe?) antes
+  de decidir — ainda sem arquitetura de armazenamento de série
+  temporal definida, pré-requisito pra qualquer versão disso.
 - **Acesso/deploy** — hoje só roda via `manage.py runserver` na máquina
   do Gabriel (`DEBUG=True`, sem host configurado). Se for pra outras
   pessoas do Grupo Velanes acessarem (gerente de loja, comprador),
