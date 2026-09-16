@@ -8,11 +8,19 @@ import math
 from collections import Counter, defaultdict
 from decimal import Decimal
 
+from django.db.models import Sum
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 from apps.captacao.models import PrecoCaptado
 from apps.lojas.models import Loja
 from apps.produtos.models import Produto
+from apps.vendas.models import VendaItem
+
+_MESES_ABREV = {
+    "01": "jan", "02": "fev", "03": "mar", "04": "abr", "05": "mai", "06": "jun",
+    "07": "jul", "08": "ago", "09": "set", "10": "out", "11": "nov", "12": "dez",
+}
 
 
 def _dias_atras(dt) -> int | None:
@@ -221,3 +229,93 @@ def montar_comparativo(
     # mais caro que a concorrência primeiro -- é o que precisa de atenção
     linhas.sort(key=lambda l: (l["diferenca_pct"] is None, -(l["diferenca_pct"] or 0)))
     return linhas
+
+
+def montar_curva_quantidade(ean: str, loja_ids: list[int]) -> list[dict]:
+    """Quantidade vendida (soma de `itens`) por mês, somando as NOSSAS
+    lojas vinculadas àquele EAN -- curva pedida pelo Gabriel (16/09/26)
+    pra ver a tendência de venda do produto, não só o preço do momento.
+    Só chamada pra a linha que está com "ver detalhes" aberto, não a
+    tabela inteira -- senão vira 1 query nova por linha da tabela do
+    Monitor de Preço."""
+    if not loja_ids or not ean:
+        return []
+    dados = (
+        VendaItem.objects.filter(produto__ean=ean, loja_id__in=loja_ids)
+        .values("ano_mes")
+        .annotate(total=Sum("itens"))
+        .order_by("ano_mes")
+    )
+    return [{"mes": d["ano_mes"], "quantidade": float(d["total"] or 0)} for d in dados]
+
+
+def svg_curva_quantidade(pontos: list[dict]) -> str:
+    """SVG simples (sem lib nova, mesma filosofia do Haversine em Python
+    puro) da curva de quantidade -- 1 linha só, sem eixo numerado (o
+    valor exato só aparece no hover via <title>), pensado pra caber
+    discreto dentro do painel de detalhe sem poluir a tela (pedido
+    explícito do Gabriel: "não quero nada poluído"). Cor em hexadecimal
+    fixo (não `var(--acento)`) porque atributo de apresentação SVG
+    (fill/stroke) nem sempre resolve custom property de CSS de forma
+    confiável entre navegadores -- mais seguro reaproveitar o valor
+    literal já usado em base.html. O último ponto vem tracejado/vazado
+    quando é o mês corrente (dado parcial, mês ainda não fechou) --
+    senão uma queda no fim da curva pareceria venda caindo quando é só
+    o mês não ter terminado ainda."""
+    if not pontos:
+        return ""
+    ACENTO, TEXTO, TEXTO_FRACO = "#5b8dee", "#e6e9ef", "#8b93a3"
+    LARG, ALT = 360, 100
+    PAD_ESQ, PAD_DIR, PAD_TOPO, PAD_BASE = 10, 10, 18, 20
+    largura_util = LARG - PAD_ESQ - PAD_DIR
+    altura_util = ALT - PAD_TOPO - PAD_BASE
+
+    maximo = max((p["quantidade"] for p in pontos), default=0) or 1
+    mes_atual = timezone.now().strftime("%Y-%m")
+    n = len(pontos)
+    passo_x = largura_util / (n - 1) if n > 1 else 0
+
+    coords = []
+    for i, p in enumerate(pontos):
+        x = PAD_ESQ + i * passo_x
+        y = PAD_TOPO + altura_util - (p["quantidade"] / maximo) * altura_util
+        coords.append((x, y, p))
+
+    partes = []
+    for i in range(1, n):
+        x1, y1, _ = coords[i - 1]
+        x2, y2, p2 = coords[i]
+        tracejado = ' stroke-dasharray="4,4"' if p2["mes"] == mes_atual else ""
+        partes.append(
+            f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+            f'stroke="{ACENTO}" stroke-width="2" stroke-linecap="round"{tracejado}/>'
+        )
+
+    for i, (x, y, p) in enumerate(coords):
+        parcial = p["mes"] == mes_atual
+        preenchido = "none" if parcial else ACENTO
+        mes_label = _MESES_ABREV.get(p["mes"][-2:], p["mes"])
+        titulo = f'{mes_label}/{p["mes"][:4]}{" (parcial)" if parcial else ""}: {p["quantidade"]:g} un.'
+        partes.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{preenchido}" '
+            f'stroke="{ACENTO}" stroke-width="2"><title>{titulo}</title></circle>'
+        )
+        partes.append(
+            f'<text x="{x:.1f}" y="{ALT - 4}" font-size="9" fill="{TEXTO_FRACO}" '
+            f'text-anchor="middle">{mes_label}{"*" if parcial else ""}</text>'
+        )
+
+    # rótulo direto só no último ponto (valor mais recente) -- "seletivo",
+    # não em todos os pontos (evitar poluir com número em cima de número)
+    x_ult, y_ult, p_ult = coords[-1]
+    partes.append(
+        f'<text x="{x_ult:.1f}" y="{max(y_ult - 8, 10):.1f}" font-size="10" '
+        f'fill="{TEXTO}" text-anchor="middle" font-weight="600">{p_ult["quantidade"]:g}</text>'
+    )
+
+    svg = (
+        f'<svg viewBox="0 0 {LARG} {ALT}" width="100%" height="{ALT}" '
+        f'role="img" aria-label="Curva de quantidade vendida por mês">'
+        + "".join(partes) + "</svg>"
+    )
+    return mark_safe(svg)

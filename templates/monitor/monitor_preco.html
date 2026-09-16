@@ -169,12 +169,10 @@
                 {% endif %}
             </td>
             <td>
-                {% if l.n_concorrentes > 1 or l.nossas_lojas|length > 1 %}
-                    {% if l.chave == detalhe_aberto %}
-                        <a href="?{{ querystring_sem_detalhe }}">ocultar</a>
-                    {% else %}
-                        <a href="?{{ querystring_sem_detalhe }}{% if querystring_sem_detalhe %}&{% endif %}detalhe={{ l.chave|urlencode }}">ver detalhes</a>
-                    {% endif %}
+                {% if l.chave == detalhe_aberto %}
+                    <a href="?{{ querystring_sem_detalhe }}">ocultar</a>
+                {% else %}
+                    <a href="?{{ querystring_sem_detalhe }}{% if querystring_sem_detalhe %}&{% endif %}detalhe={{ l.chave|urlencode }}">ver detalhes</a>
                 {% endif %}
             </td>
         </tr>
@@ -223,6 +221,17 @@
                         <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- não é distância real medida, só indica que caiu na mesma área.</p>
                         {% endif %}
                     </div>
+                </div>
+                <div class="painel-curva">
+                    <h3>Quantidade vendida por mês (nossas lojas)</h3>
+                    {% if curva_quantidade_svg %}
+                        {{ curva_quantidade_svg }}
+                        {% if curva_tem_mes_parcial %}
+                        <p class="dist">* mês em andamento, dado parcial</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="dist">Sem dado de venda registrado pra esse produto nessas lojas.</p>
+                    {% endif %}
                 </div>
             </td>
         </tr>

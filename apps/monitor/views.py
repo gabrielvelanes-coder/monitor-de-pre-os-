@@ -11,7 +11,7 @@ from apps.captacao.models import PrecoCaptado
 from apps.lojas.models import Loja
 from apps.produtos.models import Produto
 
-from .services import montar_comparativo
+from .services import montar_comparativo, montar_curva_quantidade, svg_curva_quantidade
 
 
 def sincronizar_agora(request):
@@ -118,6 +118,19 @@ def monitor_preco(request):
         loja_id=loja_id_int, bairro=bairro,
     )
 
+    # curva de quantidade vendida (só pra a linha com "ver detalhes"
+    # aberto -- não faz sentido calcular pra tabela inteira toda vez).
+    curva_quantidade_svg = None
+    curva_tem_mes_parcial = False
+    if detalhe:
+        linha_detalhe = next((l for l in linhas if l["chave"] == detalhe), None)
+        if linha_detalhe:
+            loja_ids = [nl["loja_id"] for nl in linha_detalhe["nossas_lojas"] if nl["loja_id"]]
+            pontos = montar_curva_quantidade(linha_detalhe["ean"], loja_ids)
+            curva_quantidade_svg = svg_curva_quantidade(pontos)
+            if pontos:
+                curva_tem_mes_parcial = pontos[-1]["mes"] == timezone.now().strftime("%Y-%m")
+
     ultima_sincronizacao = PrecoCaptado.objects.aggregate(m=Max("atualizado_em"))["m"]
     minutos_desde_sync = None
     if ultima_sincronizacao:
@@ -141,6 +154,8 @@ def monitor_preco(request):
         "loja_selecionada": loja_id_int,
         "bairro_selecionado": bairro,
         "detalhe_aberto": detalhe,
+        "curva_quantidade_svg": curva_quantidade_svg,
+        "curva_tem_mes_parcial": curva_tem_mes_parcial,
         "querystring_sem_detalhe": querystring_sem_detalhe,
         "link_cartao_todos": link_cartao_todos,
         "link_cartao_mais_caros": link_cartao_mais_caros,
