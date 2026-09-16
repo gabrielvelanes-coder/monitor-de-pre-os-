@@ -311,6 +311,10 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
   '2026-08' confirmado linha a linha). **74.558 linhas.** Mesmo
   importador corrigido (nome de coluna) deu conta sem ajuste nenhum.
   **jan-agosto completos agora, 611.412 linhas no total.**
+- **Setembro (parcial) importado (16/09/26, mesmo dia)** — "vendas
+  parcial setembro.xls", 1 aba só (mês em andamento, não bate o limite
+  de linhas do .xls). **54.388 linhas**, sem ajuste no importador.
+  **jan-setembro(parcial), 665.800 linhas no total.**
 - **Sincronização automática + botão manual (16/09/26).** Gabriel
   notou que "itens comparados" não subia desde o dia anterior — achado:
   a captação não era resincronizada com o robô há 14h (última vez
@@ -361,7 +365,13 @@ acima.
   no relatório certo e importados (2 bugs reais achados e corrigidos no
   importador nesse processo — colunas trocadas de posição + loja
   "22.0", ver log acima). **jan-agosto completos, 611.412 linhas.**
-- **Setembro** nunca foi mandado (nem parcial) — só falta esse.
+- ~~Setembro~~ — **resolvido (parcial) 16/09/26.** 54.388 linhas do mês
+  em andamento. **jan-setembro(parcial), 665.800 linhas no total.**
+  **Atenção pro futuro:** o importador não apaga dados antes de
+  importar (só `bulk_create`) -- quando o arquivo final de setembro
+  chegar, apagar `dados/entrada/vendas parcial setembro.xls` E as
+  54.388 linhas de `ano_mes='2026-09'` do banco ANTES de importar o
+  final, senão duplica o mês inteiro.
 
 **Backup/infraestrutura (achado 16/09/26, Gabriel perguntou "se meu PC
 quebrar, perco tudo?"):**
