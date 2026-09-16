@@ -408,6 +408,42 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     ideia é reaproveitar o mesmo padrão da curva de quantidade (sparkline
     SVG dentro do painel de detalhe, sem tela nova) quando tiver dado
     suficiente pra valer a pena.
+- **Refino visual (16/09/26, mesmo dia).** Gabriel achou o layout "feio"
+  e pediu algo mais "tecnológico" — antes de mexer no código, montei uma
+  comparação visual (Artifact, com o mesmo dado real de um print dele:
+  Loja 6/10/23/2/4/14 + 14 concorrentes) mostrando estilo atual x
+  proposta lado a lado. Ele aprovou ("pode fazer") e apliquei de
+  verdade — mudança em `base.html`, então vale em TODAS as telas
+  (Monitor, Relevância, Custo x Margem), não só o painel de detalhe:
+  - **Inter + JetBrains Mono** (Google Fonts) — texto em Inter, todo
+    número (preço/%/distância/contagem) em monoespaçada com
+    `tabular-nums`, alinhando pela casa decimal. Números grandes de
+    cartão (hero, "1.038") continuam em Inter proporcional — mono só
+    pra número em coluna, não pra número de destaque.
+  - **Tabelas sem grade cheia** — trocada a caixa de borda em toda
+    célula por só uma linha fina embaixo de cada linha; cabeçalho troca
+    o fundo cinza por texto pequeno com um traço curto na cor de
+    destaque embaixo (`::after` de 2px).
+  - **Barra de destaque no hover** — pseudo-elemento na borda esquerda
+    da 1ª célula de cada linha, opacidade 0→1 no `:hover`, sinaliza que
+    a linha tem mais informação atrás ("ver detalhes").
+  - **Distância precisa x imprecisa vira sinal visual** — classes
+    `.dist-precisa`/`.dist-vaga` com um pontinho (azul com brilho vs
+    apagado+itálico) — informação que já existia (`distancia_precisa`
+    em `services.py`) mas só aparecia em texto cinza pequeno, igual pra
+    os dois casos.
+  - **Sparkline com curva suave + gradiente + brilho** — reescrita
+    `svg_sparkline_quantidade`: em vez de linha reta entre os pontos,
+    curva suave (`_caminho_suave`, técnica de ponto médio); área
+    sombreada em gradiente embaixo da linha; ponto mais recente com
+    halo de brilho atrás. **Simplificação consciente:** a versão
+    anterior tracejava o último trecho quando o mês era parcial/corrente
+    — com curva suave isso exigiria reconstruir o path manualmente (a
+    continuidade da curva depende do trecho anterior); mantido só o
+    marcador vazado pro mês parcial, que já comunica a mesma coisa sem
+    essa complexidade.
+  - Testado nas 3 telas (Monitor de Preço, Relevância, Custo x Margem)
+    — nenhuma quebrou com a mudança global.
 
 ## Pendências (16/09/2026)
 
