@@ -458,11 +458,15 @@ acima.
   "22.0", ver log acima). **jan-agosto completos, 611.412 linhas.**
 - ~~Setembro~~ — **resolvido (parcial) 16/09/26.** 54.388 linhas do mês
   em andamento. **jan-setembro(parcial), 665.800 linhas no total.**
-  **Atenção pro futuro:** o importador não apaga dados antes de
-  importar (só `bulk_create`) -- quando o arquivo final de setembro
-  chegar, apagar `dados/entrada/vendas parcial setembro.xls` E as
-  54.388 linhas de `ano_mes='2026-09'` do banco ANTES de importar o
-  final, senão duplica o mês inteiro.
+  ~~Atenção pro futuro: apagar o parcial antes do final~~ — **correção
+  16/09/26 (mesmo dia): nota anterior estava errada.** Reli
+  `importar_vendas.py` com calma: o `bulk_create` usa
+  `update_conflicts=True` com
+  `unique_fields=["loja","codigo_erp","ano_mes"]` — é upsert de
+  verdade, não só insert. Quando o arquivo final de setembro chegar,
+  **é só importar por cima** (mesmo processo de sempre) — as linhas
+  batem na mesma chave (loja+código+mês) e são atualizadas, não
+  duplicadas. Não precisa apagar nada antes.
 
 **Backup/infraestrutura (achado 16/09/26, Gabriel perguntou "se meu PC
 quebrar, perco tudo?"):**

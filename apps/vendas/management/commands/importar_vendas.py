@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 from django.conf import settings
+from django.core.cache import cache
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -163,3 +164,8 @@ class Command(BaseCommand):
                 f"{sem_produto} linha(s) sem Produto correspondente (venda ainda importada, "
                 f"só fica sem classificação/EAN até o cadastro ser completado)."
             ))
+
+        # Relevância/Custo x Margem ficam em cache (achado 16/09/26, tela
+        # levava 37s sem isso) -- limpa aqui pra não mostrar dado velho
+        # depois de importar vendas novas.
+        cache.clear()
