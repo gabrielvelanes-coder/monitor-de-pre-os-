@@ -506,6 +506,12 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
      Corrigido priorizando "S/N" literal quando presente. Afetava
      **304 registros** — não só a Loja 13; os 2 maiores casos eram
      trechos da BR 415 e BR 101 em Itabuna.
+  - **Confirmado depois da correção:** captação de Ipiaú está normal e
+    ativa — 110 registros no total (8 nossa/Loja 13 + 102 concorrente),
+    91 EANs distintos, 28 estabelecimentos, última passada do robô
+    poucas horas antes de checar. Volume bem menor que Itabuna (ainda
+    "enchendo", rodízio por lote entrou em produção só no dia anterior,
+    15/09/26) — não é captação parada nem quebrada, só cobertura jovem.
 
 ## Pendências (16/09/2026)
 
@@ -574,6 +580,16 @@ quebrar, perco tudo?"):**
 **Decisões de produto em aberto:**
 - ~~Curva de quantidade das nossas lojas~~ — **resolvido 16/09/26.**
   Implementada dentro do painel "ver detalhes" (ver log acima).
+- **Revisar Configuração de Concorrentes (nova, 16/09/26)** — tela
+  `/concorrentes/` criada com 414 estabelecimentos descobertos
+  automaticamente, todos **inativos** por padrão (não contam no Monitor
+  de Preço ainda). Gabriel precisa entrar lá e marcar quem considera
+  concorrente de verdade (tem farmácia real misturada com supermercado/
+  atacarejo — ex. FARMACIA ULTRA ECONOMICA com 289 registros, mais
+  volume que "São Paulo" que já era curada). Decisão 100% dele, não
+  ativei nenhum. Depois de ativar, rodar `geocodificar_concorrentes`
+  pra pegar distância dos novos (só 43 endereços estavam geocodificados
+  quando só tinha os 7 curados).
 - **Histórico/série temporal** — ~~decisão de arquitetura~~ **tomada
   16/09/26**: tabela `PrecoHistorico`, 1 snapshot/dia, retenção 1 ano
   (ver log acima). Base de dado já rodando sozinha. **Falta só construir
@@ -588,10 +604,16 @@ quebrar, perco tudo?"):**
 
 **Manutenção recorrente (não é bug, é rotina):**
 - `manage.py geocodificar_concorrentes` **não roda automático** (só
-  `vincular_lojas_captacao`/`extrair_bairros_captacao` rodam sozinhos
-  no fim de `sincronizar_captacao`) — precisa rodar manual de vez em
-  quando conforme aparecem concorrentes novos na captação (hoje 29 de
-  43 endereços únicos geocodificados).
+  `vincular_lojas_captacao`/`extrair_bairros_captacao`/
+  `descobrir_concorrentes` rodam sozinhos no fim de
+  `sincronizar_captacao`) — precisa rodar manual de vez em quando
+  conforme aparecem concorrentes novos ATIVADOS na captação (29 de 43
+  endereços dos 7 curados originais geocodificados; os 414 descobertos
+  em 16/09/26 ainda não foram, só vale a pena depois que Gabriel ativar
+  algum deles em Configuração de Concorrentes).
 - Cobertura de Ilhéus/Ipiaú ainda crescendo (rodízio por lote do robô
   entrou em produção 15/09/26) — números de comparação nessas 2 cidades
-  ainda vão crescer sozinhos, sem precisar de nada daqui.
+  ainda vão crescer sozinhos, sem precisar de nada daqui. Situação em
+  16/09/26: Itabuna 1.000 EANs nossos captados, Ilhéus 35, Ipiaú 8 —
+  bem desigual ainda, é o motivo de quase não ter item repetido em mais
+  de 1 cidade (só 3 de 1.040 hoje).
