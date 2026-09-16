@@ -11,6 +11,14 @@ from apps.captacao.models import PrecoCaptado
 # reais (15/09/26): 489 (99,4%) batem com número normal + BAIRRO + CEP de
 # 8 dígitos; o pedaço "(?:\d+[-A-Z]?|S/?N)" cobre número comum ("668"),
 # número com sufixo ("428A"/"140-A") e "S/N" (sem número).
+#
+# BUG REAL encontrado 16/09/26 (Loja 13, Ipiaú): rua com número NO PRÓPRIO
+# NOME ("RUA 2 DE JULHO, S/N CENTRO...") -- o regex antigo casava o "2"
+# de "Rua 2 de Julho" achando que era o número do imóvel, e o bairro
+# capturado virava "DE JULHO S/N CENTRO" em vez de só "CENTRO". Corrigido
+# priorizando "S/N" quando ele aparece literal no endereço -- só cai pro
+# regex de número comum quando não tem "S/N" nenhum.
+_REGEX_SN = re.compile(r"S/?N\s+(.+?)\s+\d{8},")
 _REGEX_BAIRRO = re.compile(r"(?:\d+[-A-Z]?|S/?N)\s+(.+?)\s+\d{8},")
 
 
@@ -34,7 +42,8 @@ def _extrair_bairro(endereco: str) -> str:
     capturado (ex. '1263 S CAETANO', 'ATE 881 431 CENTRO'). Bairro de
     verdade não tem dígito -- rejeita a captura nesse caso (fica vazio,
     mesmo tratamento de "não bateu o padrão", não quebra nada)."""
-    m = _REGEX_BAIRRO.search(endereco or "")
+    texto = endereco or ""
+    m = _REGEX_SN.search(texto) or _REGEX_BAIRRO.search(texto)
     if not m:
         return ""
     bairro = _sem_acento(m.group(1).strip())
