@@ -466,6 +466,27 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     fontes externas independentes (robô/governo E Receita Federal)
     concordam contra 1 fonte interna, vale conferir a fonte interna
     antes de assumir que o dado externo está errado.
+- **Nova tela "Configuração de Concorrentes" (16/09/26, mesmo dia).**
+  Gabriel questionou o conceito de "6/7 concorrentes curados" — não
+  queria uma lista fixa, queria ver TODO estabelecimento captado (414
+  ficavam escondidos como "sem rede identificada", alguns com bastante
+  volume — ex. FARMACIA ULTRA ECONOMICA, 289 registros, mais que "São
+  Paulo" que já era curada) e poder marcar/desmarcar quem conta.
+  - `Rede.ativa` (novo campo, default `True`) — só Redes
+    tipo=concorrente **ativas** entram no Monitor de Preço
+    (`montar_comparativo` ganhou `rede__ativa=True` no filtro).
+  - `manage.py descobrir_concorrentes` (novo, encadeado no fim de
+    `sincronizar_captacao`) — cria 1 Rede por estabelecimento sem
+    classificação, sempre **inativa** por padrão (não muda nada sozinho
+    na hora, só dá visibilidade). 414 descobertos na 1ª rodada.
+  - Tela nova `/concorrentes/` (menu lateral, grupo Preço) — tabela
+    interativa (busca + ordenação, reaproveitando `tabela.js`) com 1
+    checkbox por linha, ordenada por ativos primeiro e depois volume de
+    registros (pra ele revisar os maiores primeiro). Testado
+    end-to-end: marcar/salvar funciona, reflete no Monitor de Preço na
+    hora, sobrevive a reload.
+  - **Decisão de quais ativar fica com o Gabriel** — a implementação só
+    deu a ferramenta; nenhum dos 414 foi ativado por conta própria.
 
 ## Pendências (16/09/2026)
 
