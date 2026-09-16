@@ -353,6 +353,32 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     então não dava pra ver o fade rolar "ao vivo" no teste, mas o
     resultado final (opacity 0, visibility hidden no fim do delay+
     duração) bateu certinho.
+- **Curva de quantidade vendida por mês (16/09/26, mesmo dia).** Gabriel
+  confirmou que queria "curva quantidade das nossas lojas" — soma de
+  `VendaItem.itens` por `ano_mes`, das lojas vinculadas ao EAN/cidade
+  daquela linha. Decisões de design:
+  - **Onde:** dentro do mesmo painel de detalhe ("ver detalhes"), não
+    tela nova nem coluna nova na tabela principal — segue a mesma lógica
+    do redesign anterior (painel largo já existe, só ganhou uma 3ª
+    seção abaixo das 2 tabelas).
+  - **Como:** SVG puro gerado em Python (`svg_curva_quantidade` em
+    `services.py`), sem lib nova — mesma filosofia do Haversine em
+    Python puro já usado pra distância. 1 linha só (soma agregada, não
+    1 linha por loja — evita virar 10 linhas coloridas pra item com
+    "méd. de 10 lojas"), sem eixo numerado, valor exato só no hover
+    (`<title>` nativo do SVG), rótulo direto só no último ponto
+    (seletivo, não em todos).
+  - **Mês corrente vem tracejado/vazado** — comparado com
+    `timezone.now()`, não com "setembro" fixo (continua funcionando
+    sozinho em outubro) — senão o mês parcial pareceria queda de venda.
+  - **Removida a trava do link "ver detalhes"** (antes só aparecia com
+    2+ lojas ou 2+ concorrentes) — agora toda linha tem a curva pra
+    mostrar (mesmo que "sem dado de venda"), então o link sempre
+    aparece.
+  - Testado com 3 casos: EAN com 6 meses de dado, EAN com 9 meses
+    completos, e EAN sem nenhum `VendaItem` vinculado (mostra "Sem dado
+    de venda registrado pra esse produto nessas lojas." em vez de
+    gráfico vazio).
 
 ## Pendências (16/09/2026)
 
@@ -415,13 +441,8 @@ quebrar, perco tudo?"):**
   nova de verdade, não é extensão pequena.
 
 **Decisões de produto em aberto:**
-- **Curva de quantidade das nossas lojas** — Gabriel pediu (16/09/26)
-  pra ver a curva de quantidade vendida por produto/loja (dado já
-  existe em `VendaItem`, jan-agosto). Falta decidir onde entra na tela
-  (inclinação: dentro do painel "ver detalhes" já existente, pra não
-  poluir, mesma preocupação de densidade que levou ao redesign desse
-  painel) e como (Chart.js, ainda não usado em nenhuma tela do
-  monitor-precos). Não iniciado.
+- ~~Curva de quantidade das nossas lojas~~ — **resolvido 16/09/26.**
+  Implementada dentro do painel "ver detalhes" (ver log acima).
 - **Histórico/série temporal** — hoje o Monitor de Preço só mostra o
   estado ATUAL (snapshot), sem guardar histórico pra responder "estamos
   ficando mais caros ao longo do tempo?". Discutido quando Gabriel
