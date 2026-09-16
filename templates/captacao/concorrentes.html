@@ -31,10 +31,13 @@
 <form method="post">
     {% csrf_token %}
     <input type="text" class="campo-busca" data-filtro-tabela="tabela-concorrentes" placeholder="Buscar por nome...">
+    <div style="margin-bottom:12px;">
+        <button type="submit">Salvar</button>
+    </div>
     <table id="tabela-concorrentes" class="tabela-interativa">
         <thead>
             <tr>
-                <th style="width:40px;"></th>
+                <th style="width:40px;"><input type="checkbox" id="marcar-todos" title="Marcar/desmarcar todos os visíveis"></th>
                 <th data-ordenavel>Nome</th>
                 <th class="num" data-ordenavel>Registros captados</th>
             </tr>
@@ -53,5 +56,16 @@
         <button type="submit">Salvar</button>
     </div>
 </form>
+
+<script>
+    document.getElementById('marcar-todos').addEventListener('change', function () {
+        var marcar = this.checked;
+        document.querySelectorAll('#tabela-concorrentes tbody tr').forEach(function (tr) {
+            if (tr.hidden) return;  // respeita o filtro de busca -- só mexe no que está visível
+            var cb = tr.querySelector('input[type=checkbox]');
+            if (cb) cb.checked = marcar;
+        });
+    });
+</script>
 
 {% endblock %}
