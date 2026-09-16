@@ -46,6 +46,17 @@ def monitor_preco(request):
     querystring.pop("detalhe", None)
     querystring_sem_detalhe = querystring.urlencode()
 
+    # pros cartões (Itens comparados/Mais caros/Sem concorrente) virarem
+    # link de filtro -- mantém os outros filtros, troca só "situacao".
+    querystring_base_cartao = request.GET.copy()
+    querystring_base_cartao.pop("detalhe", None)
+    querystring_base_cartao.pop("situacao", None)
+    _base = querystring_base_cartao.urlencode()
+    _prefixo = f"{_base}&" if _base else ""
+    link_cartao_todos = f"?{_base}"
+    link_cartao_mais_caros = f"?{_prefixo}situacao=mais_caro"
+    link_cartao_sem_concorrente = f"?{_prefixo}situacao=sem_concorrente"
+
     cidades = list(
         PrecoCaptado.objects.exclude(cidade_busca="")
         .values_list("cidade_busca", flat=True).distinct().order_by("cidade_busca")
@@ -97,6 +108,15 @@ def monitor_preco(request):
         subclassificacao=subclassificacao, situacao=situacao,
         loja_id=loja_id_int, bairro=bairro,
     )
+    # cartões sempre mostram o panorama geral (sem o filtro de situação),
+    # mesmo quando a tabela está filtrada por um deles -- senão clicar no
+    # cartão "sem concorrente" faria o próprio cartão "itens comparados"
+    # virar 485 também, perdendo a noção do total.
+    linhas_para_cartoes = linhas if not situacao else montar_comparativo(
+        cidade=cidade, bandeira=bandeira, classificacao=classificacao,
+        subclassificacao=subclassificacao, situacao=None,
+        loja_id=loja_id_int, bairro=bairro,
+    )
 
     ultima_sincronizacao = PrecoCaptado.objects.aggregate(m=Max("atualizado_em"))["m"]
     minutos_desde_sync = None
@@ -122,8 +142,11 @@ def monitor_preco(request):
         "bairro_selecionado": bairro,
         "detalhe_aberto": detalhe,
         "querystring_sem_detalhe": querystring_sem_detalhe,
-        "total": len(linhas),
-        "mais_caros": sum(1 for l in linhas if (l["diferenca_pct"] or 0) > 0),
-        "sem_comparacao": sum(1 for l in linhas if l["diferenca_pct"] is None),
+        "link_cartao_todos": link_cartao_todos,
+        "link_cartao_mais_caros": link_cartao_mais_caros,
+        "link_cartao_sem_concorrente": link_cartao_sem_concorrente,
+        "total": len(linhas_para_cartoes),
+        "mais_caros": sum(1 for l in linhas_para_cartoes if (l["diferenca_pct"] or 0) > 0),
+        "sem_comparacao": sum(1 for l in linhas_para_cartoes if l["diferenca_pct"] is None),
     }
     return render(request, "monitor/monitor_preco.html", context)

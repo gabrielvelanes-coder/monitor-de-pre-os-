@@ -3,9 +3,11 @@
 {% block conteudo %}
 
 {% if messages %}
+    <div class="avisos">
     {% for m in messages %}
-        <div class="aviso {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
+        <div class="aviso aviso-some {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
     {% endfor %}
+    </div>
 {% endif %}
 
 <div class="barra-sincronizacao">
@@ -18,23 +20,29 @@
     </span>
     <form method="post" action="{% url 'monitor:sincronizar_agora' %}">
         {% csrf_token %}
-        <button type="submit" class="botao-secundario">Sincronizar agora</button>
+        <button type="submit" class="botao-icone" title="Sincronizar agora">⟳</button>
     </form>
 </div>
 
 <div class="cartoes">
-    <div class="cartao">
-        <div class="valor">{{ total }}</div>
-        <div class="rotulo">Itens comparados</div>
-    </div>
-    <div class="cartao alerta">
-        <div class="valor">{{ mais_caros }}</div>
-        <div class="rotulo">Mais caros que a concorrência</div>
-    </div>
-    <div class="cartao">
-        <div class="valor">{{ sem_comparacao }}</div>
-        <div class="rotulo">Sem concorrente na região</div>
-    </div>
+    <a class="cartao-link" href="{{ link_cartao_todos }}">
+        <div class="cartao">
+            <div class="valor">{{ total }}</div>
+            <div class="rotulo">Itens comparados</div>
+        </div>
+    </a>
+    <a class="cartao-link" href="{{ link_cartao_mais_caros }}">
+        <div class="cartao alerta">
+            <div class="valor">{{ mais_caros }}</div>
+            <div class="rotulo">Mais caros que a concorrência</div>
+        </div>
+    </a>
+    <a class="cartao-link" href="{{ link_cartao_sem_concorrente }}">
+        <div class="cartao">
+            <div class="valor">{{ sem_comparacao }}</div>
+            <div class="rotulo">Sem concorrente na região</div>
+        </div>
+    </a>
 </div>
 
 <form class="filtros" method="get">
@@ -100,6 +108,7 @@
             <option value="">Todos</option>
             <option value="mais_caro" {% if situacao_selecionada == "mais_caro" %}selected{% endif %}>Mais caro que a concorrência</option>
             <option value="mais_barato" {% if situacao_selecionada == "mais_barato" %}selected{% endif %}>Mais barato ou igual</option>
+            <option value="sem_concorrente" {% if situacao_selecionada == "sem_concorrente" %}selected{% endif %}>Sem concorrente na região</option>
         </select>
     </div>
     <button type="submit">Filtrar</button>

@@ -191,6 +191,8 @@ def montar_comparativo(
             continue
         if situacao == "mais_barato" and not (diferenca_pct is not None and diferenca_pct <= 0):
             continue
+        if situacao == "sem_concorrente" and diferenca_pct is not None:
+            continue
 
         produto = produto_por_ean.get(ean)
         linhas.append({
