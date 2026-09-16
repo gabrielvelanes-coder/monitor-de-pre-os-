@@ -93,6 +93,20 @@
             background: var(--superficie2); color: var(--texto); font-size: 14px;
             width: 260px; margin-bottom: 12px;
         }
+        .barra-sincronizacao {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; margin-bottom: 16px;
+        }
+        .botao-secundario {
+            padding: 6px 12px; border-radius: 6px; border: 1px solid var(--borda);
+            background: var(--superficie2); color: var(--texto); font-size: 13px; cursor: pointer;
+        }
+        .botao-secundario:hover { background: var(--superficie); }
+        .aviso {
+            padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13.5px;
+            background: var(--verde-bg); color: var(--verde); border: 1px solid var(--verde);
+        }
+        .aviso.aviso-erro { background: var(--vermelho-bg); color: var(--vermelho); border-color: var(--vermelho); }
     </style>
 </head>
 <body>

@@ -2,6 +2,26 @@
 {% block titulo %}Monitor de Preço{% endblock %}
 {% block conteudo %}
 
+{% if messages %}
+    {% for m in messages %}
+        <div class="aviso {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="barra-sincronizacao">
+    <span class="dist">
+        {% if minutos_desde_sync == None %}sem sincronização ainda
+        {% elif minutos_desde_sync < 1 %}dado mais recente: agora mesmo
+        {% elif minutos_desde_sync < 60 %}dado mais recente: há {{ minutos_desde_sync }} min
+        {% else %}dado mais recente: há {{ minutos_desde_sync|floatformat:0 }} min ({{ ultima_sincronizacao|date:"d/m H:i" }})
+        {% endif %}
+    </span>
+    <form method="post" action="{% url 'monitor:sincronizar_agora' %}">
+        {% csrf_token %}
+        <button type="submit" class="botao-secundario">Sincronizar agora</button>
+    </form>
+</div>
+
 <div class="cartoes">
     <div class="cartao">
         <div class="valor">{{ total }}</div>

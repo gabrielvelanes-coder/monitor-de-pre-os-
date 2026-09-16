@@ -1,10 +1,35 @@
-from django.shortcuts import render
+from io import StringIO
+
+from django.contrib import messages
+from django.core.management import call_command
+from django.db.models import Max
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
 
 from apps.captacao.models import PrecoCaptado
 from apps.lojas.models import Loja
 from apps.produtos.models import Produto
 
 from .services import montar_comparativo
+
+
+def sincronizar_agora(request):
+    """Botão "Sincronizar agora" -- roda sincronizar_captacao (que já
+    encadeia vincular_lojas_captacao e extrair_bairros_captacao) na hora,
+    pra quem não quiser esperar a Tarefa Agendada ou não tiver uma
+    configurada. Gabriel pediu depois de notar que a tela ficou 14h sem
+    atualizar (16/09/26) sem nenhum aviso disso na cara."""
+    saida = StringIO()
+    try:
+        call_command("sincronizar_captacao", stdout=saida)
+        resumo = saida.getvalue().strip().splitlines()
+        messages.success(request, resumo[0] if resumo else "Sincronizado.")
+    except Exception as exc:
+        messages.error(request, f"Falha ao sincronizar: {exc}")
+
+    destino = request.META.get("HTTP_REFERER") or reverse("monitor:monitor_preco")
+    return redirect(destino)
 
 
 def monitor_preco(request):
@@ -73,7 +98,14 @@ def monitor_preco(request):
         loja_id=loja_id_int, bairro=bairro,
     )
 
+    ultima_sincronizacao = PrecoCaptado.objects.aggregate(m=Max("atualizado_em"))["m"]
+    minutos_desde_sync = None
+    if ultima_sincronizacao:
+        minutos_desde_sync = int((timezone.now() - ultima_sincronizacao).total_seconds() // 60)
+
     context = {
+        "ultima_sincronizacao": ultima_sincronizacao,
+        "minutos_desde_sync": minutos_desde_sync,
         "linhas": linhas,
         "cidades": cidades,
         "bandeiras": bandeiras,
