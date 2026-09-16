@@ -487,6 +487,25 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     hora, sobrevive a reload.
   - **Decisão de quais ativar fica com o Gabriel** — a implementação só
     deu a ferramenta; nenhum dos 414 foi ativado por conta própria.
+- **Investigação "Ipiaú muito estranho" (16/09/26, mesmo dia) — 2 bugs
+  reais achados e corrigidos:**
+  1. **`Loja.cidade` da Loja 13 (única loja em Ipiaú) sem acento**
+     ("Ipiau" em vez de "Ipiaú") — inconsistente com o resto do sistema
+     (robô, `PrecoCaptado.cidade_busca`, sempre acentuado). Filtrar o
+     Monitor de Preço por "Loja 13" retornava **0 linhas sempre**,
+     silenciosamente — mesma classe de bug de acento/grafia já corrigida
+     antes pra outras lojas. Corrigido `lojas_config.json` (2 cópias:
+     monitor-precos e robo_cotacao) + reimportado + revinculado: Ipiaú
+     foi de 0/8 pra **8/8** vinculado, vínculo geral subiu de 99,3% pra
+     **99,6%**.
+  2. **Bairro errado quando a rua/rodovia tem número no próprio nome**
+     (ex. "RUA 2 DE JULHO, S/N" ou "RODOVIA BR 415, S/N") — a regex de
+     extração de bairro pegava esse número (parte do NOME, não da
+     numeração predial) como se fosse número do imóvel, bagunçando o
+     bairro capturado ("DE JULHO S/N CENTRO", "S/N PARQUE VERDE" etc.).
+     Corrigido priorizando "S/N" literal quando presente. Afetava
+     **304 registros** — não só a Loja 13; os 2 maiores casos eram
+     trechos da BR 415 e BR 101 em Itabuna.
 
 ## Pendências (16/09/2026)
 
