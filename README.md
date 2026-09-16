@@ -512,6 +512,12 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     poucas horas antes de checar. Volume bem menor que Itabuna (ainda
     "enchendo", rodízio por lote entrou em produção só no dia anterior,
     15/09/26) — não é captação parada nem quebrada, só cobertura jovem.
+- **"Marcar todos" na Configuração de Concorrentes (16/09/26, mesmo
+  dia)** — Gabriel pediu depois de ver a lista de 421 linhas. Checkbox
+  no cabeçalho marca/desmarca só o que está VISÍVEL no momento (respeita
+  o filtro de busca — filtrar "FARMACIA" + marcar todos só mexe nos
+  filtrados, não na lista inteira). Botão "Salvar" duplicado no topo
+  também, pra não precisar rolar até o fim da tabela toda vez.
 
 ## Pendências (16/09/2026)
 
