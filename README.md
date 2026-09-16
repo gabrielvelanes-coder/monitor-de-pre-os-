@@ -518,6 +518,21 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
   o filtro de busca — filtrar "FARMACIA" + marcar todos só mexe nos
   filtrados, não na lista inteira). Botão "Salvar" duplicado no topo
   também, pra não precisar rolar até o fim da tabela toda vez.
+- **Validação end-to-end da Configuração de Concorrentes (16/09/26,
+  mesmo dia).** Gabriel ativou 32 concorrentes (dos 7 originais) e
+  achou que os cartões do Monitor de Preço não tinham mudado —
+  investigado, **não era bug**: conferido direto no banco e recarregando
+  a tela, os números refletiam certinho (`Mais caros` foi de ~420 pra
+  **485**, `Sem concorrente` caiu de ~502 pra **416**, 86 itens que
+  antes não tinham concorrente pareado passaram a ter). **O que
+  confundiu:** o cartão `Itens comparados` (1.043) NUNCA muda com
+  ativação de concorrente, de propósito — ele conta as NOSSAS próprias
+  captações (universo total de produtos nossos vistos), não quantos têm
+  concorrente pareado. O nome do cartão é ambíguo (soa como "quantos
+  foram comparados com a concorrência", mas não é isso). **Possível
+  melhoria futura, ainda não decidida com o Gabriel:** trocar o rótulo
+  pra algo tipo "Produtos nossos captados" e/ou adicionar um indicador
+  de cobertura de comparação (% com concorrente pareado) separado.
 
 ## Pendências (16/09/2026)
 
@@ -586,16 +601,21 @@ quebrar, perco tudo?"):**
 **Decisões de produto em aberto:**
 - ~~Curva de quantidade das nossas lojas~~ — **resolvido 16/09/26.**
   Implementada dentro do painel "ver detalhes" (ver log acima).
-- **Revisar Configuração de Concorrentes (nova, 16/09/26)** — tela
-  `/concorrentes/` criada com 414 estabelecimentos descobertos
-  automaticamente, todos **inativos** por padrão (não contam no Monitor
-  de Preço ainda). Gabriel precisa entrar lá e marcar quem considera
-  concorrente de verdade (tem farmácia real misturada com supermercado/
-  atacarejo — ex. FARMACIA ULTRA ECONOMICA com 289 registros, mais
-  volume que "São Paulo" que já era curada). Decisão 100% dele, não
-  ativei nenhum. Depois de ativar, rodar `geocodificar_concorrentes`
-  pra pegar distância dos novos (só 43 endereços estavam geocodificados
-  quando só tinha os 7 curados).
+- **Revisar Configuração de Concorrentes (em andamento, 16/09/26)** —
+  tela `/concorrentes/` criada com 414 estabelecimentos descobertos
+  automaticamente. Gabriel já ativou **32** (dos 414, além dos 7
+  originais) — validado end-to-end que o Monitor de Preço reflete
+  certinho (ver log acima). **Ainda tem ~382 pra ele revisar** (tem
+  farmácia real misturada com supermercado/atacarejo que não deve
+  contar). Falta rodar `geocodificar_concorrentes` pra pegar distância
+  dos que já foram ativados (só os 7 originais + alguns dos novos
+  antigos estão geocodificados).
+- **Rótulo do cartão "Itens comparados" pode confundir (achado
+  16/09/26)** — conta as NOSSAS captações (universo total), não quantos
+  têm concorrente pareado; por isso não muda ao ativar concorrente
+  novo, e Gabriel achou que era bug na hora. Possível melhoria: renomear
+  e/ou adicionar indicador de cobertura de comparação separado — ainda
+  não decidido com ele.
 - **Histórico/série temporal** — ~~decisão de arquitetura~~ **tomada
   16/09/26**: tabela `PrecoHistorico`, 1 snapshot/dia, retenção 1 ano
   (ver log acima). Base de dado já rodando sozinha. **Falta só construir
