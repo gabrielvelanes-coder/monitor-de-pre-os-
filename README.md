@@ -311,6 +311,21 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
   '2026-08' confirmado linha a linha). **74.558 linhas.** Mesmo
   importador corrigido (nome de coluna) deu conta sem ajuste nenhum.
   **jan-agosto completos agora, 611.412 linhas no total.**
+- **Sincronização automática + botão manual (16/09/26).** Gabriel
+  notou que "itens comparados" não subia desde o dia anterior — achado:
+  a captação não era resincronizada com o robô há 14h (última vez
+  19h31 do dia anterior), mesmo o robô continuando a captar normal.
+  Ninguém tinha ficado de rodar `sincronizar_captacao` manualmente.
+  Resolvido com 2 coisas juntas:
+  - Botão **"Sincronizar agora"** no topo do Monitor de Preço (nova
+    view `sincronizar_agora`, POST) — roda a sincronização na hora,
+    sem precisar de terminal.
+  - **Tarefa Agendada do Windows** `VelanesP_SincronizarCaptacao`
+    (mesmo padrão do robô), rodando `sincronizar_captacao` sozinha a
+    cada 30min — testado rodando via Agendador de verdade
+    (`LastTaskResult=0`), não só manual.
+  - A tela agora sempre mostra **"dado mais recente: há N min"** no
+    topo — a defasagem fica visível em vez de escondida.
 
 ## Pendências (16/09/2026)
 
