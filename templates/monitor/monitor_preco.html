@@ -183,7 +183,7 @@
                     <div>
                         <h3>Nossas lojas</h3>
                         <table>
-                            <thead><tr><th>Loja</th><th class="num">Preço</th><th>Bairro</th><th>Coletado</th></tr></thead>
+                            <thead><tr><th>Loja</th><th class="num">Preço</th><th>Bairro</th><th>Coletado</th><th>Qtd. vendida/mês</th></tr></thead>
                             <tbody>
                                 {% for nl in l.nossas_lojas %}
                                 <tr>
@@ -191,6 +191,7 @@
                                     <td class="num">R$ {{ nl.preco }}</td>
                                     <td>{{ nl.bairro|default:"—" }}</td>
                                     <td>{% if nl.dias_atras == 0 %}hoje{% else %}há {{ nl.dias_atras }} dia{{ nl.dias_atras|pluralize }}{% endif %}</td>
+                                    <td>{% if nl.tendencia %}{{ nl.tendencia }}{% else %}<span class="dist">sem dado de venda</span>{% endif %}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -221,17 +222,6 @@
                         <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- não é distância real medida, só indica que caiu na mesma área.</p>
                         {% endif %}
                     </div>
-                </div>
-                <div class="painel-curva">
-                    <h3>Quantidade vendida por mês (nossas lojas)</h3>
-                    {% if curva_quantidade_svg %}
-                        {{ curva_quantidade_svg }}
-                        {% if curva_tem_mes_parcial %}
-                        <p class="dist">* mês em andamento, dado parcial</p>
-                        {% endif %}
-                    {% else %}
-                        <p class="dist">Sem dado de venda registrado pra esse produto nessas lojas.</p>
-                    {% endif %}
                 </div>
             </td>
         </tr>

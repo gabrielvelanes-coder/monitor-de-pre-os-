@@ -231,44 +231,46 @@ def montar_comparativo(
     return linhas
 
 
-def montar_curva_quantidade(ean: str, loja_ids: list[int]) -> list[dict]:
-    """Quantidade vendida (soma de `itens`) por mês, somando as NOSSAS
-    lojas vinculadas àquele EAN -- curva pedida pelo Gabriel (16/09/26)
-    pra ver a tendência de venda do produto, não só o preço do momento.
-    Só chamada pra a linha que está com "ver detalhes" aberto, não a
-    tabela inteira -- senão vira 1 query nova por linha da tabela do
-    Monitor de Preço."""
+def montar_curvas_quantidade_por_loja(ean: str, loja_ids: list[int]) -> dict[int, list[dict]]:
+    """Quantidade vendida (soma de `itens`) por mês, 1 curva POR LOJA (não
+    somada) -- Gabriel viu a curva agregada e perguntou "cadê a curva da
+    Loja 2, Loja 4, Loja 3?" (16/09/26): queria comparar a tendência de
+    cada loja lado a lado, não só o total do produto. 1 query só
+    (agrupada por loja+mês), não 1 query por loja -- só chamada pra a
+    linha que está com "ver detalhes" aberto."""
     if not loja_ids or not ean:
-        return []
+        return {}
     dados = (
         VendaItem.objects.filter(produto__ean=ean, loja_id__in=loja_ids)
-        .values("ano_mes")
+        .values("loja_id", "ano_mes")
         .annotate(total=Sum("itens"))
-        .order_by("ano_mes")
+        .order_by("loja_id", "ano_mes")
     )
-    return [{"mes": d["ano_mes"], "quantidade": float(d["total"] or 0)} for d in dados]
+    curvas: dict[int, list[dict]] = defaultdict(list)
+    for d in dados:
+        curvas[d["loja_id"]].append({"mes": d["ano_mes"], "quantidade": float(d["total"] or 0)})
+    return dict(curvas)
 
 
-def svg_curva_quantidade(pontos: list[dict]) -> str:
-    """SVG simples (sem lib nova, mesma filosofia do Haversine em Python
-    puro) da curva de quantidade -- 1 linha só, sem eixo numerado (o
-    valor exato só aparece no hover via <title>), pensado pra caber
-    discreto dentro do painel de detalhe sem poluir a tela (pedido
-    explícito do Gabriel: "não quero nada poluído"). Cor em hexadecimal
-    fixo (não `var(--acento)`) porque atributo de apresentação SVG
-    (fill/stroke) nem sempre resolve custom property de CSS de forma
-    confiável entre navegadores -- mais seguro reaproveitar o valor
-    literal já usado em base.html. O último ponto vem tracejado/vazado
-    quando é o mês corrente (dado parcial, mês ainda não fechou) --
-    senão uma queda no fim da curva pareceria venda caindo quando é só
-    o mês não ter terminado ainda."""
+def svg_sparkline_quantidade(pontos: list[dict]) -> str:
+    """Sparkline compacta (SVG puro, sem lib nova -- mesma filosofia do
+    Haversine em Python puro) da quantidade vendida por mês de 1 loja só,
+    pensada pra caber numa célula da tabela "Nossas lojas" -- coloca a
+    curva de cada loja lado a lado com a linha dela (Loja 2 x Loja 4 x
+    Loja 3), sem precisar de legenda/cor por loja (o nome já está na
+    linha da tabela). Cor em hexadecimal fixo (não `var(--acento)`)
+    porque atributo de apresentação SVG nem sempre resolve custom
+    property de CSS entre navegadores. Mês corrente vem tracejado/vazado
+    (comparado com `timezone.now()`, não fixo em "setembro" -- continua
+    valendo sozinho mês que vem) pra não parecer queda de venda quando é
+    só o mês não ter terminado."""
     if not pontos:
         return ""
-    ACENTO, TEXTO, TEXTO_FRACO = "#5b8dee", "#e6e9ef", "#8b93a3"
-    LARG, ALT = 360, 100
-    PAD_ESQ, PAD_DIR, PAD_TOPO, PAD_BASE = 10, 10, 18, 20
-    largura_util = LARG - PAD_ESQ - PAD_DIR
-    altura_util = ALT - PAD_TOPO - PAD_BASE
+    ACENTO = "#5b8dee"
+    LARG, ALT = 130, 32
+    PAD_X, PAD_Y = 5, 5
+    largura_util = LARG - 2 * PAD_X
+    altura_util = ALT - 2 * PAD_Y
 
     maximo = max((p["quantidade"] for p in pontos), default=0) or 1
     mes_atual = timezone.now().strftime("%Y-%m")
@@ -277,45 +279,32 @@ def svg_curva_quantidade(pontos: list[dict]) -> str:
 
     coords = []
     for i, p in enumerate(pontos):
-        x = PAD_ESQ + i * passo_x
-        y = PAD_TOPO + altura_util - (p["quantidade"] / maximo) * altura_util
+        x = PAD_X + i * passo_x
+        y = PAD_Y + altura_util - (p["quantidade"] / maximo) * altura_util
         coords.append((x, y, p))
 
     partes = []
     for i in range(1, n):
         x1, y1, _ = coords[i - 1]
         x2, y2, p2 = coords[i]
-        tracejado = ' stroke-dasharray="4,4"' if p2["mes"] == mes_atual else ""
+        tracejado = ' stroke-dasharray="3,3"' if p2["mes"] == mes_atual else ""
         partes.append(
             f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
-            f'stroke="{ACENTO}" stroke-width="2" stroke-linecap="round"{tracejado}/>'
+            f'stroke="{ACENTO}" stroke-width="1.5" stroke-linecap="round"{tracejado}/>'
         )
-
-    for i, (x, y, p) in enumerate(coords):
+    for x, y, p in coords:
         parcial = p["mes"] == mes_atual
         preenchido = "none" if parcial else ACENTO
         mes_label = _MESES_ABREV.get(p["mes"][-2:], p["mes"])
         titulo = f'{mes_label}/{p["mes"][:4]}{" (parcial)" if parcial else ""}: {p["quantidade"]:g} un.'
         partes.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{preenchido}" '
-            f'stroke="{ACENTO}" stroke-width="2"><title>{titulo}</title></circle>'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.5" fill="{preenchido}" '
+            f'stroke="{ACENTO}" stroke-width="1.5"><title>{titulo}</title></circle>'
         )
-        partes.append(
-            f'<text x="{x:.1f}" y="{ALT - 4}" font-size="9" fill="{TEXTO_FRACO}" '
-            f'text-anchor="middle">{mes_label}{"*" if parcial else ""}</text>'
-        )
-
-    # rótulo direto só no último ponto (valor mais recente) -- "seletivo",
-    # não em todos os pontos (evitar poluir com número em cima de número)
-    x_ult, y_ult, p_ult = coords[-1]
-    partes.append(
-        f'<text x="{x_ult:.1f}" y="{max(y_ult - 8, 10):.1f}" font-size="10" '
-        f'fill="{TEXTO}" text-anchor="middle" font-weight="600">{p_ult["quantidade"]:g}</text>'
-    )
 
     svg = (
-        f'<svg viewBox="0 0 {LARG} {ALT}" width="100%" height="{ALT}" '
-        f'role="img" aria-label="Curva de quantidade vendida por mês">'
+        f'<svg viewBox="0 0 {LARG} {ALT}" width="{LARG}" height="{ALT}" '
+        f'role="img" aria-label="Tendência de quantidade vendida por mês">'
         + "".join(partes) + "</svg>"
     )
     return mark_safe(svg)
