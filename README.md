@@ -444,6 +444,28 @@ Achados nessa sessão que afetam diretamente o que chega aqui:
     essa complexidade.
   - Testado nas 3 telas (Monitor de Preço, Relevância, Custo x Margem)
     — nenhuma quebrou com a mudança global.
+- **Cobertura por cidade e endereço da Loja 18 corrigido (16/09/26,
+  mesmo dia).** Gabriel notou 2 coisas:
+  - Perguntou se algum EAN aparece em mais de 1 cidade — quase nunca
+    (só 3 de 1.040 EANs nossos). Motivo real, não bug: Itabuna tem
+    1.000 EANs captados, Ilhéus 35, Ipiaú 8 — cobertura ainda MUITO
+    desigual (rodízio por lote do robô ainda enchendo Ilhéus/Ipiaú, ver
+    pendência mais abaixo). Sobreposição entre cidades vai crescer
+    sozinha conforme o robô capta mais lá.
+  - Apontou um "loja não identificada" (RETEMIC, Ilhéus) que devia ser
+    da Loja 18. Cadastro tinha "AV UBAITABA, 1"; robô captava
+    "AVENIDA UBAITABA 1123". **1ª hipótese errada:** achei que o erro
+    era do robô/Preço da Hora. Gabriel apontou a planilha-fonte
+    (`DADOS GRUPO VELANES ATUALIZADO 2025.xlsx`) — que TAMBÉM tinha
+    "1". Consultado o CNPJ da loja (14.211.106/0005-72) via Receita
+    Federal (BrasilAPI): endereço oficial é **1123**, batendo com o
+    robô. O "1" era erro de digitação na planilha interna mesmo.
+    Corrigido `lojas_config.json` (monitor-precos E robo_cotacao, os 2
+    têm cópia) e rodado `vincular_lojas_captacao` de novo — vínculo
+    subiu de 99,1% pra **99,3%** (2.459/2.477). **Lição:** quando 2
+    fontes externas independentes (robô/governo E Receita Federal)
+    concordam contra 1 fonte interna, vale conferir a fonte interna
+    antes de assumir que o dado externo está errado.
 
 ## Pendências (16/09/2026)
 
