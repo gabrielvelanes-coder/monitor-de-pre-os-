@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Configuração de Concorrentes{% endblock %}
+{% block conteudo %}
+
+{% if messages %}
+    <div class="avisos">
+    {% for m in messages %}
+        <div class="aviso aviso-some {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
+    {% endfor %}
+    </div>
+{% endif %}
+
+<div class="cartoes">
+    <div class="cartao">
+        <div class="valor">{{ n_ativas }}</div>
+        <div class="rotulo">Concorrentes ativos</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">{{ n_total }}</div>
+        <div class="rotulo">Estabelecimentos captados no total</div>
+    </div>
+</div>
+
+<p class="dist" style="margin-bottom:14px;">
+    Todo estabelecimento que aparece na captação vira 1 linha aqui — não só uma lista curada.
+    Marque quem você considera concorrente de verdade; só os marcados entram no Monitor de Preço.
+    Supermercados, atacarejos e afins que também vendem os mesmos produtos aparecem também — é você
+    quem decide se contam.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="text" class="campo-busca" data-filtro-tabela="tabela-concorrentes" placeholder="Buscar por nome...">
+    <table id="tabela-concorrentes" class="tabela-interativa">
+        <thead>
+            <tr>
+                <th style="width:40px;"></th>
+                <th data-ordenavel>Nome</th>
+                <th class="num" data-ordenavel>Registros captados</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in redes %}
+            <tr>
+                <td><input type="checkbox" name="ativa" value="{{ r.id }}" {% if r.ativa %}checked{% endif %}></td>
+                <td>{{ r.nome }}</td>
+                <td class="num">{{ r.n_registros }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top:16px;">
+        <button type="submit">Salvar</button>
+    </div>
+</form>
+
+{% endblock %}

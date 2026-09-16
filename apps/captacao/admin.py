@@ -5,8 +5,9 @@ from .models import PrecoCaptado, Rede
 
 @admin.register(Rede)
 class RedeAdmin(admin.ModelAdmin):
-    list_display = ("nome", "tipo", "substrings")
-    list_filter = ("tipo",)
+    list_display = ("nome", "tipo", "ativa", "substrings")
+    list_filter = ("tipo", "ativa")
+    list_editable = ("ativa",)
 
 
 @admin.register(PrecoCaptado)

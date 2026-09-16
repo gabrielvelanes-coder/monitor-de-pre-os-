@@ -15,11 +15,19 @@ class Rede(models.Model):
     TIPO_CONCORRENTE = "concorrente"
     TIPO_CHOICES = [(TIPO_NOSSA, "Nossa bandeira"), (TIPO_CONCORRENTE, "Concorrente")]
 
-    nome = models.CharField(max_length=60, unique=True)
+    nome = models.CharField(max_length=200, unique=True)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default=TIPO_CONCORRENTE)
     substrings = models.JSONField(
         default=list,
         help_text="Trechos (case-insensitive) que casam contra o nome bruto do estabelecimento.",
+    )
+    ativa = models.BooleanField(
+        default=True,
+        help_text="Só Redes tipo=concorrente ATIVAS entram no Monitor de Preço. Gabriel pediu "
+                   "(16/09/26) pra ver TODO concorrente captado (não só os 6 curados originais) "
+                   "e escolher quem conta -- concorrentes descobertos automaticamente "
+                   "('manage.py descobrir_concorrentes') entram como inativos por padrão, pra "
+                   "ele revisar antes de contarem na comparação.",
     )
 
     class Meta:

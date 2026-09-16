@@ -67,7 +67,12 @@ def montar_comparativo(
     distintas estão envolvidas, o resumo fica sem número (evita distância
     enganosa) mas o detalhe expandido mostra a distância por loja."""
     nossos_qs = PrecoCaptado.objects.filter(rede__tipo="nossa", preco__isnull=False)
-    conc_qs = PrecoCaptado.objects.filter(rede__tipo="concorrente", preco__isnull=False)
+    # rede__ativa=True -- Gabriel pediu (16/09/26) pra ver TODO concorrente
+    # captado (não só os 6 curados originais), com opção de marcar/desmarcar
+    # quem conta ("não existe isso de curado"). `descobrir_concorrentes`
+    # cria 1 Rede por estabelecimento novo, sempre inativa até ele revisar
+    # em Configuração de Concorrentes -- só as ativas entram aqui.
+    conc_qs = PrecoCaptado.objects.filter(rede__tipo="concorrente", rede__ativa=True, preco__isnull=False)
     if loja_id:
         # BUG REAL encontrado 15/09/26: escolher Loja + Cidade ao mesmo
         # tempo, com a loja sendo de OUTRA cidade, quebrava a comparação

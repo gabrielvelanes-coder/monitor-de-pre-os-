@@ -157,6 +157,7 @@
         <nav>
             <div class="grupo-titulo">Preço</div>
             <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
+            <a href="{% url 'captacao:concorrentes' %}" {% if request.resolver_match.url_name == 'concorrentes' %}class="ativo"{% endif %}>Configuração de Concorrentes</a>
             <a href="#" title="Ainda não implementado">Análise de Entradas</a>
 
             <div class="grupo-titulo">Vendas</div>
