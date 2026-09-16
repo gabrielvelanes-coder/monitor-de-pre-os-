@@ -252,23 +252,49 @@ def montar_curvas_quantidade_por_loja(ean: str, loja_ids: list[int]) -> dict[int
     return dict(curvas)
 
 
+def _caminho_suave(pontos_xy: list[tuple[float, float]]) -> str:
+    """Comando de `<path d="...">` que passa suave pelos pontos (técnica
+    de curva por ponto médio: cada ponto vira o "controle" da curva até o
+    meio do caminho pro próximo) -- em vez de zigue-zague reto entre os
+    pontos, fica com a cara de gráfico de verdade (Stripe/Linear-style)."""
+    if len(pontos_xy) < 2:
+        return ""
+    x0, y0 = pontos_xy[0]
+    d = f"M {x0:.1f},{y0:.1f}"
+    for i in range(len(pontos_xy) - 1):
+        xa, ya = pontos_xy[i]
+        xb, yb = pontos_xy[i + 1]
+        mx, my = (xa + xb) / 2, (ya + yb) / 2
+        d += f" Q {xa:.1f},{ya:.1f} {mx:.1f},{my:.1f}"
+    xl, yl = pontos_xy[-1]
+    d += f" T {xl:.1f},{yl:.1f}"
+    return d
+
+
 def svg_sparkline_quantidade(pontos: list[dict]) -> str:
     """Sparkline compacta (SVG puro, sem lib nova -- mesma filosofia do
     Haversine em Python puro) da quantidade vendida por mês de 1 loja só,
     pensada pra caber numa célula da tabela "Nossas lojas" -- coloca a
     curva de cada loja lado a lado com a linha dela (Loja 2 x Loja 4 x
     Loja 3), sem precisar de legenda/cor por loja (o nome já está na
-    linha da tabela). Cor em hexadecimal fixo (não `var(--acento)`)
-    porque atributo de apresentação SVG nem sempre resolve custom
-    property de CSS entre navegadores. Mês corrente vem tracejado/vazado
-    (comparado com `timezone.now()`, não fixo em "setembro" -- continua
-    valendo sozinho mês que vem) pra não parecer queda de venda quando é
-    só o mês não ter terminado."""
+    linha da tabela). Curva suave + área em gradiente + brilho no ponto
+    mais recente (16/09/26, pedido do Gabriel pra deixar o painel "mais
+    tecnológico" -- antes era só uma linha reta fina sem nenhum relevo).
+    Cor em hexadecimal fixo (não `var(--acento)`) porque atributo de
+    apresentação SVG nem sempre resolve custom property de CSS entre
+    navegadores. Mês corrente vem com marcador vazado (comparado com
+    `timezone.now()`, não fixo em "setembro" -- continua valendo sozinho
+    mês que vem) pra não parecer queda de venda quando é só o mês não ter
+    terminado -- simplificação consciente: a versão anterior tracejava o
+    último trecho da linha reta, mas com curva suave isolar só o último
+    trecho pra tracejar exigiria reconstruir o path manualmente (a
+    continuidade da curva depende do trecho anterior); o marcador vazado
+    sozinho já comunica "parcial" sem essa complexidade extra."""
     if not pontos:
         return ""
-    ACENTO = "#5b8dee"
-    LARG, ALT = 130, 32
-    PAD_X, PAD_Y = 5, 5
+    ACENTO, BG = "#5b8dee", "#0a0d13"
+    LARG, ALT = 132, 34
+    PAD_X, PAD_Y = 4, 6
     largura_util = LARG - 2 * PAD_X
     altura_util = ALT - 2 * PAD_Y
 
@@ -283,24 +309,41 @@ def svg_sparkline_quantidade(pontos: list[dict]) -> str:
         y = PAD_Y + altura_util - (p["quantidade"] / maximo) * altura_util
         coords.append((x, y, p))
 
+    grad_id = f"grad{id(pontos) % 100000}"
     partes = []
-    for i in range(1, n):
-        x1, y1, _ = coords[i - 1]
-        x2, y2, p2 = coords[i]
-        tracejado = ' stroke-dasharray="3,3"' if p2["mes"] == mes_atual else ""
+
+    if n > 1:
+        linha = _caminho_suave([(x, y) for x, y, _ in coords])
+        x0, _, _ = coords[0]
+        xl, _, _ = coords[-1]
+        area = f"{linha} L {xl:.1f},{ALT} L {x0:.1f},{ALT} Z"
         partes.append(
-            f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
-            f'stroke="{ACENTO}" stroke-width="1.5" stroke-linecap="round"{tracejado}/>'
+            f'<defs><linearGradient id="{grad_id}" x1="0" y1="0" x2="0" y2="1">'
+            f'<stop offset="0%" stop-color="{ACENTO}" stop-opacity="0.35"/>'
+            f'<stop offset="100%" stop-color="{ACENTO}" stop-opacity="0"/>'
+            f'</linearGradient></defs>'
         )
-    for x, y, p in coords:
+        partes.append(f'<path d="{area}" fill="url(#{grad_id})"/>')
+        partes.append(f'<path d="{linha}" fill="none" stroke="{ACENTO}" stroke-width="1.6" stroke-linecap="round"/>')
+
+    for i, (x, y, p) in enumerate(coords):
         parcial = p["mes"] == mes_atual
-        preenchido = "none" if parcial else ACENTO
         mes_label = _MESES_ABREV.get(p["mes"][-2:], p["mes"])
         titulo = f'{mes_label}/{p["mes"][:4]}{" (parcial)" if parcial else ""}: {p["quantidade"]:g} un.'
-        partes.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.5" fill="{preenchido}" '
-            f'stroke="{ACENTO}" stroke-width="1.5"><title>{titulo}</title></circle>'
-        )
+        if i == n - 1:
+            # ponto mais recente -- halo de brilho por trás + marcador
+            # maior (vazado se mês corrente/parcial)
+            preenchido = "none" if parcial else BG
+            partes.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{ACENTO}" opacity="0.18"/>')
+            partes.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="{preenchido}" '
+                f'stroke="{ACENTO}" stroke-width="1.8"><title>{titulo}</title></circle>'
+            )
+        else:
+            partes.append(
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.2" fill="{ACENTO}" '
+                f'stroke="{ACENTO}" stroke-width="1"><title>{titulo}</title></circle>'
+            )
 
     svg = (
         f'<svg viewBox="0 0 {LARG} {ALT}" width="{LARG}" height="{ALT}" '

@@ -4,21 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block titulo %}Monitor de Preço de Mercado{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
-            --bg: #10141b; --superficie: #1a1f29; --superficie2: #212836;
-            --borda: #2a3140; --texto: #e6e9ef; --texto-fraco: #8b93a3;
-            --acento: #5b8dee; --acento-bg: #1e2a44; --acento-texto: #0b0f14;
+            --bg: #0a0d13; --superficie: #12161f; --superficie2: #171d28; --superficie-hover: #1c2330;
+            --borda: #232a37; --borda-suave: #1a202c; --texto: #e9ecf3; --texto-fraco: #8792a6;
+            --texto-apagado: #5c6579;
+            --acento: #5b8dee; --acento-bg: #1e2a44; --acento-suave: rgba(91,141,238,.14);
+            --acento-brilho: rgba(91,141,238,.55); --acento-texto: #061024;
             --vermelho: #ff6b6b; --vermelho-bg: rgba(255,107,107,.14);
             --verde: #4ade80; --verde-bg: rgba(74,222,128,.14);
             --sidebar-w: 230px;
         }
         * { box-sizing: border-box; }
         body {
-            margin: 0; font-family: -apple-system, Segoe UI, Arial, sans-serif;
-            background: var(--bg); color: var(--texto);
+            margin: 0; font-family: "Inter", -apple-system, Segoe UI, Arial, sans-serif;
+            background: var(--bg); color: var(--texto); -webkit-font-smoothing: antialiased;
         }
+        .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
         .layout { display: flex; min-height: 100vh; }
         aside {
             width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
@@ -62,13 +68,29 @@
             background: var(--superficie2); color: var(--texto);
         }
         form.filtros button { background: var(--acento); color: var(--acento-texto); border: none; cursor: pointer; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; background: var(--superficie); border-radius: 10px; overflow: hidden; }
-        table { border: 1px solid var(--borda); }
-        th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--borda); font-size: 13.5px; }
-        th { background: var(--superficie2); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--texto-fraco); }
-        tr:hover { background: var(--superficie2); }
-        .num { text-align: right; font-variant-numeric: tabular-nums; }
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        table {
+            width: 100%; border-collapse: collapse; background: var(--superficie);
+            border-radius: 12px; overflow: hidden; border: 1px solid var(--borda-suave);
+        }
+        th, td { padding: 11px 12px; text-align: left; font-size: 13px; position: relative; }
+        th {
+            padding-bottom: 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+            color: var(--texto-apagado); font-weight: 600; border-bottom: 1px solid var(--borda);
+        }
+        td { border-bottom: 1px solid var(--borda-suave); }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr { transition: background .12s; }
+        tbody tr:hover td { background: var(--superficie-hover); }
+        tbody tr td:first-child::before {
+            content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+            background: var(--acento); opacity: 0; transition: opacity .12s;
+        }
+        tbody tr:hover td:first-child::before { opacity: 1; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", ui-monospace, monospace; }
+        .tag {
+            display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+            font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;
+        }
         .tag.caro { background: var(--vermelho-bg); color: var(--vermelho); }
         .tag.barato { background: var(--verde-bg); color: var(--verde); }
         .tag.neutro { background: var(--superficie2); color: var(--texto-fraco); }
@@ -79,12 +101,23 @@
             padding: 16px 4px;
         }
         .painel-detalhe h3 {
-            margin: 0 0 8px; font-size: 12px; text-transform: uppercase;
-            letter-spacing: .03em; color: var(--texto-fraco); font-weight: 600;
+            margin: 0 0 12px; font-size: 11px; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--texto-fraco); font-weight: 700;
+            position: relative; padding-bottom: 9px; display: inline-block;
         }
-        .painel-detalhe table { background: var(--superficie2); }
-        .painel-detalhe th { background: var(--bg); }
+        .painel-detalhe h3::after {
+            content: ""; position: absolute; left: 0; bottom: 0; width: 22px; height: 2px;
+            background: var(--acento); border-radius: 2px;
+        }
+        .painel-detalhe table { background: var(--superficie2); border-color: var(--borda); }
         .painel-detalhe svg { vertical-align: middle; }
+        .dist-precisa, .dist-vaga { font-family: "JetBrains Mono", ui-monospace, monospace; }
+        .dist-vaga { color: var(--texto-apagado); font-style: italic; }
+        .dist-precisa .ponto, .dist-vaga .ponto {
+            display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 5px; vertical-align: middle;
+        }
+        .dist-precisa .ponto { background: var(--acento); box-shadow: 0 0 6px var(--acento-brilho); }
+        .dist-vaga .ponto { background: var(--texto-apagado); }
         th.th-ordenavel { cursor: pointer; user-select: none; }
         th.th-ordenavel::after { content: ''; display: inline-block; width: 10px; }
         th.ordenado-asc::after { content: '▲'; font-size: 9px; margin-left: 4px; }
