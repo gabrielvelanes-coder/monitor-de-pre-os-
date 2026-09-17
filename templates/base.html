@@ -171,6 +171,7 @@
             <div class="grupo-titulo">Vendas</div>
             <a href="{% url 'vendas:relevancia' %}" {% if request.resolver_match.url_name == 'relevancia' %}class="ativo"{% endif %}>Relevância</a>
             <a href="{% url 'vendas:custo_margem' %}" {% if request.resolver_match.url_name == 'custo_margem' %}class="ativo"{% endif %}>Custo x Margem</a>
+            <a href="{% url 'vendas:selecao_itens_relevantes' %}" {% if request.resolver_match.url_name == 'selecao_itens_relevantes' %}class="ativo"{% endif %}>Selecionar Itens Relevantes</a>
 
             <div class="grupo-titulo">Sistema</div>
             <a href="/admin/">Admin</a>

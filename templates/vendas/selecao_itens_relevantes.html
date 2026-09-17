@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block titulo %}Selecionar Itens Relevantes{% endblock %}
+{% block conteudo %}
+
+{% if messages %}
+    <div class="avisos">
+    {% for m in messages %}
+        <div class="aviso aviso-some {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
+    {% endfor %}
+    </div>
+{% endif %}
+
+<div class="cartoes">
+    <div class="cartao">
+        <div class="valor">{{ n_selecionados }}</div>
+        <div class="rotulo">Selecionados pra acompanhar</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">{{ n_total }}</div>
+        <div class="rotulo">Candidatos sugeridos (Top faturamento + Top unidades)</div>
+    </div>
+</div>
+
+<p class="dist" style="margin-bottom:14px;">
+    Sugerimos os candidatos com base em faturamento e unidades vendidas -- você decide quais valem
+    a pena acompanhar de preço todo dia. Só os marcados entram na fila prioritária do robô e no
+    Monitor de "Itens Relevantes". Curva = quantidade vendida por mês, somada em todas as lojas.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="text" class="campo-busca" data-filtro-tabela="tabela-itens-relevantes" placeholder="Buscar por EAN, descrição...">
+    <div style="margin-bottom:12px;">
+        <button type="submit">Salvar</button>
+    </div>
+    <table id="tabela-itens-relevantes" class="tabela-interativa">
+        <thead>
+            <tr>
+                <th style="width:40px;"><input type="checkbox" id="marcar-todos" title="Marcar/desmarcar todos os visíveis"></th>
+                <th data-ordenavel>EAN</th>
+                <th data-ordenavel>Descrição</th>
+                <th data-ordenavel>Por quê é candidato</th>
+                <th class="num" data-ordenavel>Venda (R$)</th>
+                <th class="num" data-ordenavel>Unidades</th>
+                <th>Curva de venda (rede)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in linhas %}
+            <tr>
+                <td><input type="checkbox" name="selecionado" value="{{ l.ean }}" {% if l.selecionado %}checked{% endif %}></td>
+                <td>{{ l.ean }}</td>
+                <td>{{ l.descricao }}</td>
+                <td>
+                    {% if l.origem == "ambos" %}<span class="tag ambos">💰 Faturamento + 📦 Unidades</span>
+                    {% elif l.origem == "faturamento" %}<span class="tag faturamento">💰 Faturamento</span>
+                    {% elif l.origem == "unidades" %}<span class="tag unidades">📦 Unidades</span>
+                    {% endif %}
+                </td>
+                <td class="num">R$ {{ l.venda|floatformat:2 }}</td>
+                <td class="num">{{ l.itens|floatformat:0 }}</td>
+                <td>{% if l.curva %}{{ l.curva }}{% else %}<span class="dist">sem dado</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top:16px;">
+        <button type="submit">Salvar</button>
+    </div>
+</form>
+
+<script>
+    document.getElementById('marcar-todos').addEventListener('change', function () {
+        var marcar = this.checked;
+        document.querySelectorAll('#tabela-itens-relevantes tbody tr').forEach(function (tr) {
+            if (tr.hidden) return;  // respeita o filtro de busca -- só mexe no que está visível
+            var cb = tr.querySelector('input[type=checkbox]');
+            if (cb) cb.checked = marcar;
+        });
+    });
+</script>
+
+{% endblock %}

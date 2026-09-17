@@ -33,3 +33,26 @@ class VendaItem(models.Model):
 
     def __str__(self):
         return f"{self.loja} — {self.codigo_erp} ({self.ano_mes})"
+
+
+class SelecaoItemRelevante(models.Model):
+    """Gabriel escolhe, dentro dos candidatos sugeridos (Top faturamento +
+    Top unidades, ver `services.itens_relevantes`), quais itens realmente
+    quer acompanhar de preço todo dia -- ver tela "Selecionar Itens
+    Relevantes" (17/09/26, pedido explícito: "você identifica quais itens
+    são mais relevantes e eu escolho quais quero olhar"). `ean` (não FK
+    pra Produto) pra ficar independente de recadastro/troca de Produto,
+    igual `PrecoCaptado.ean`. Sem registro = ainda não decidido, conta
+    como selecionado por padrão (candidato sugerido já é relevante até
+    prova em contrário)."""
+
+    ean = models.CharField(max_length=20, unique=True, db_index=True)
+    selecionado = models.BooleanField(default=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Seleção de item relevante"
+        verbose_name_plural = "Seleções de itens relevantes"
+
+    def __str__(self):
+        return f"{self.ean} ({'selecionado' if self.selecionado else 'ignorado'})"

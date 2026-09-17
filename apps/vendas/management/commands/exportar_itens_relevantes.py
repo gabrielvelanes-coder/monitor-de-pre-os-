@@ -4,12 +4,13 @@ from datetime import datetime, timezone
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from apps.vendas.services import itens_relevantes
+from apps.vendas.services import eans_selecionados_relevantes, itens_relevantes
 
 
 class Command(BaseCommand):
     help = (
-        "Exporta o Top N por faturamento + Top N por unidades (união, dedup por EAN) "
+        "Exporta os itens relevantes SELECIONADOS (tela 'Selecionar Itens Relevantes') dentro dos "
+        "candidatos sugeridos (Top N por faturamento + Top N por unidades, união, dedup por EAN) "
         "pra _itens_relevantes.json na pasta do robo_cotacao -- roda `termos_prioritarios.py` "
         "lá depois pra gerar os termos de busca. Rodar sob demanda, sempre que vendas novas "
         "forem importadas (não precisa ser diário)."
@@ -23,7 +24,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         top_n = options["top_n"]
-        itens = itens_relevantes(top_n=top_n)
+        candidatos = itens_relevantes(top_n=top_n)
+        selecionados = eans_selecionados_relevantes([c["ean"] for c in candidatos])
+        itens = [c for c in candidatos if c["ean"] in selecionados]
 
         caminho = settings.CAMINHO_ITENS_RELEVANTES_ROBO_COTACAO
         caminho.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +51,7 @@ class Command(BaseCommand):
         n_faturamento = sum(1 for i in itens if i["origem"] == "faturamento")
         n_unidades = sum(1 for i in itens if i["origem"] == "unidades")
         self.stdout.write(self.style.SUCCESS(
-            f"{len(itens)} itens relevantes exportados pra {caminho} "
-            f"({n_faturamento} só faturamento, {n_unidades} só unidades, {n_ambos} nos dois)."
+            f"{len(itens)} de {len(candidatos)} candidatos selecionados exportados pra {caminho} "
+            f"({n_faturamento} só faturamento, {n_unidades} só unidades, {n_ambos} nos dois). "
+            f"Ajustar a seleção em 'Selecionar Itens Relevantes' no painel."
         ))

@@ -1,9 +1,17 @@
-from django.shortcuts import render
+from django.contrib import messages
+from django.shortcuts import redirect, render
 
 from apps.lojas.models import Loja
-from apps.vendas.models import VendaItem
+from apps.monitor.services import svg_sparkline_quantidade
+from apps.vendas.models import SelecaoItemRelevante, VendaItem
 
-from .services import custo_margem_resumo, relevancia_por_classificacao
+from .services import (
+    curva_quantidade_agregada,
+    custo_margem_resumo,
+    eans_selecionados_relevantes,
+    itens_relevantes,
+    relevancia_por_classificacao,
+)
 
 
 def relevancia(request):
@@ -61,3 +69,42 @@ def custo_margem(request):
         **dados,
     }
     return render(request, "vendas/custo_margem.html", context)
+
+
+def selecao_itens_relevantes(request):
+    """Gabriel escolhe, dentro dos candidatos sugeridos (Top faturamento +
+    Top unidades, `services.itens_relevantes`), quais itens realmente
+    quer acompanhar de preço todo dia -- pedido explícito (17/09/26):
+    "você identifica quais itens são mais relevantes e eu escolho quais
+    quero olhar". `manage.py exportar_itens_relevantes` usa só os
+    selecionados daqui pra alimentar a fila prioritária do robô."""
+    candidatos = itens_relevantes(top_n=100)
+    eans = [c["ean"] for c in candidatos]
+
+    if request.method == "POST":
+        marcados = set(request.POST.getlist("selecionado"))
+        for ean in eans:
+            SelecaoItemRelevante.objects.update_or_create(
+                ean=ean, defaults={"selecionado": ean in marcados},
+            )
+        messages.success(request, "Seleção de itens relevantes salva.")
+        return redirect("vendas:selecao_itens_relevantes")
+
+    selecionados = eans_selecionados_relevantes(eans)
+    curvas = curva_quantidade_agregada(eans)
+
+    linhas = [
+        {
+            **c,
+            "selecionado": c["ean"] in selecionados,
+            "curva": svg_sparkline_quantidade(curvas.get(c["ean"], [])),
+        }
+        for c in candidatos
+    ]
+
+    context = {
+        "linhas": linhas,
+        "n_selecionados": len(selecionados),
+        "n_total": len(linhas),
+    }
+    return render(request, "vendas/selecao_itens_relevantes.html", context)

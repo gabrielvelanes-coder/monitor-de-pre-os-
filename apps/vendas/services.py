@@ -12,7 +12,7 @@ from django.core.cache import cache
 from django.db.models import Sum
 
 from apps.produtos.models import Produto
-from apps.vendas.models import VendaItem
+from apps.vendas.models import SelecaoItemRelevante, VendaItem
 
 # Relevância e Custo x Margem agregam ~665 mil linhas de VendaItem a cada
 # carregamento -- 37s sem cache (achado 16/09/26, Gabriel reclamou de
@@ -140,6 +140,42 @@ def itens_relevantes(top_n: int = 100) -> list[dict]:
         })
     resultado.sort(key=lambda i: i["venda"], reverse=True)
     return resultado
+
+
+def curva_quantidade_agregada(eans: list[str]) -> dict[str, list[dict]]:
+    """Quantidade vendida (soma de `itens`) por mês, agregada em TODAS as
+    lojas (rede inteira, não por loja individual) -- pedido explícito do
+    Gabriel na tela "Selecionar Itens Relevantes" ("não precisa ser curva
+    por loja, uma curva geral (da rede)"), diferente do padrão por-loja já
+    usado no Monitor de Preço (`montar_curvas_quantidade_por_loja`). 1
+    query agrupada por EAN+mês pra todos os candidatos de uma vez (são só
+    ~166 itens), não 1 query por item."""
+    if not eans:
+        return {}
+    dados = (
+        VendaItem.objects.filter(produto__ean__in=eans)
+        .values("produto__ean", "ano_mes")
+        .annotate(total=Sum("itens"))
+        .order_by("produto__ean", "ano_mes")
+    )
+    curvas: dict[str, list[dict]] = defaultdict(list)
+    for d in dados:
+        curvas[d["produto__ean"]].append({"mes": d["ano_mes"], "quantidade": float(d["total"] or 0)})
+    return dict(curvas)
+
+
+def eans_selecionados_relevantes(eans_candidatos: list[str]) -> set[str]:
+    """Dos candidatos sugeridos, quais Gabriel decidiu acompanhar de
+    verdade (tela "Selecionar Itens Relevantes") -- sem registro ainda
+    conta como selecionado (candidato sugerido já é relevante até prova
+    em contrário, ver docstring do model)."""
+    if not eans_candidatos:
+        return set()
+    nao_selecionados = set(
+        SelecaoItemRelevante.objects.filter(ean__in=eans_candidatos, selecionado=False)
+        .values_list("ean", flat=True)
+    )
+    return set(eans_candidatos) - nao_selecionados
 
 
 def _filtrar_vendas(
