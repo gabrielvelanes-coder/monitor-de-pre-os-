@@ -25,10 +25,12 @@ SECRET_KEY = 'django-insecure-0-c$*&rxet&ka-e18vx8zsk$kj)gb4s^eak4nj5tbt!+f#e#ye
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# IP fixo do PC do Gabriel na rede do escritório — outras pessoas acessam por
-# http://192.168.0.33:8000/. Se o IP mudar (ex: roteador reiniciou), rodar
-# `ipconfig` de novo e atualizar aqui.
-ALLOWED_HOSTS = ['192.168.0.33', 'localhost', '127.0.0.1']
+# IP do PC do Gabriel na rede do escritório — outras pessoas acessam por
+# http://192.168.100.74:8000/. Já mudou uma vez (roteador reatribuiu via
+# DHCP, 17/09/26: era 192.168.0.33) -- se parar de funcionar de novo,
+# rodar `ipconfig` e atualizar aqui. Vale reservar esse IP no roteador
+# pra não quebrar de novo (oferecido a Gabriel, sem decisão ainda).
+ALLOWED_HOSTS = ['192.168.100.74', 'localhost', '127.0.0.1']
 
 
 # Application definition
