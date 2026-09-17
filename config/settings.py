@@ -155,3 +155,11 @@ DADOS_ENTRADA = BASE_DIR / 'dados' / 'entrada'
 CAMINHO_DB_ROBO_COTACAO = (
     BASE_DIR.parent.parent / 'robo_cotacao' / '_precos_continuos.sqlite3'
 )
+
+# Onde `exportar_itens_relevantes` grava a lista de EANs prioritários pro
+# robô ler (`termos_prioritarios.py` do lado de lá) -- mesmo padrão de
+# arquivo compartilhado entre os dois projetos que lojas_config.json/
+# concorrentes_config.json já usam.
+CAMINHO_ITENS_RELEVANTES_ROBO_COTACAO = (
+    BASE_DIR.parent.parent / 'robo_cotacao' / '_itens_relevantes.json'
+)

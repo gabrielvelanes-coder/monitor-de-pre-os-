@@ -92,6 +92,56 @@ def relevancia_por_classificacao(
     return resultado
 
 
+def itens_relevantes(top_n: int = 100) -> list[dict]:
+    """União do Top N por faturamento (venda R$) com o Top N por unidades
+    (itens) -- cada métrica pega um motivo de importância diferente (achado
+    17/09/26: só 34% de sobreposição entre os dois top-100 -- MOUNJARO fatura
+    muito com poucas unidades, LOSARTANA vende dezenas de milhares de
+    unidades a preço baixo cada). Fonte pro robô saber quais itens merecem
+    busca de preço prioritária todo dia (ver `exportar_itens_relevantes`)."""
+    linhas = list(
+        VendaItem.objects.filter(produto__isnull=False)
+        .values("produto_id")
+        .annotate(venda=Sum("venda"), itens=Sum("itens"))
+    )
+    produtos = {
+        p["id"]: p
+        for p in Produto.objects.filter(id__in=[l["produto_id"] for l in linhas]).values(
+            "id", "ean", "descricao"
+        )
+    }
+    for l in linhas:
+        produto = produtos.get(l["produto_id"], {})
+        l["ean"] = produto.get("ean", "")
+        l["descricao"] = produto.get("descricao", "")
+
+    linhas_com_ean = [l for l in linhas if l["ean"] and l["ean"] != "nan"]
+    top_faturamento = sorted(linhas_com_ean, key=lambda l: l["venda"], reverse=True)[:top_n]
+    top_unidades = sorted(linhas_com_ean, key=lambda l: l["itens"], reverse=True)[:top_n]
+
+    origem_por_ean: dict[str, set[str]] = defaultdict(set)
+    dados_por_ean: dict[str, dict] = {}
+    for l in top_faturamento:
+        origem_por_ean[l["ean"]].add("faturamento")
+        dados_por_ean[l["ean"]] = l
+    for l in top_unidades:
+        origem_por_ean[l["ean"]].add("unidades")
+        dados_por_ean[l["ean"]] = l
+
+    resultado = []
+    for ean, origens in origem_por_ean.items():
+        l = dados_por_ean[ean]
+        resultado.append({
+            "ean": ean,
+            "descricao": l["descricao"],
+            "venda": l["venda"] or Decimal("0"),
+            "itens": l["itens"] or Decimal("0"),
+            "origem": "ambos" if len(origens) == 2 else next(iter(origens)),
+        })
+    resultado.sort(key=lambda i: i["venda"], reverse=True)
+    return resultado
+
+
 def _filtrar_vendas(
     ano_mes_de: str | None, ano_mes_ate: str | None, bandeira: str | None, cidade: str | None,
 ):
