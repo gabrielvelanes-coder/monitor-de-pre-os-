@@ -32,6 +32,17 @@
 
 <form class="filtros" method="get">
     <div>
+        <label for="loja">Loja</label>
+        <select name="loja" id="loja">
+            <option value="">Todas</option>
+            {% for l in lojas %}
+                <option value="{{ l.id }}" {% if l.id == loja_selecionada %}selected{% endif %}>
+                    {{ l.nome }} — {{ l.bandeira }}, {{ l.cidade }}{% if not l.tem_dado %} (sem dado ainda){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
         <label for="bandeira">Bandeira</label>
         <select name="bandeira" id="bandeira">
             <option value="">Todas</option>
@@ -46,6 +57,33 @@
             <option value="">Todas</option>
             {% for c in cidades %}
                 <option value="{{ c }}" {% if c == cidade_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="bairro">Bairro</label>
+        <select name="bairro" id="bairro">
+            <option value="">Todos</option>
+            {% for b in bairros %}
+                <option value="{{ b }}" {% if b == bairro_selecionado %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="classificacao">Classificação</label>
+        <select name="classificacao" id="classificacao">
+            <option value="">Todas</option>
+            {% for c in classificacoes %}
+                <option value="{{ c }}" {% if c == classificacao_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="subclassificacao">Subclassificação</label>
+        <select name="subclassificacao" id="subclassificacao">
+            <option value="">Todas</option>
+            {% for c in subclassificacoes %}
+                <option value="{{ c }}" {% if c == subclassificacao_selecionada %}selected{% endif %}>{{ c }}</option>
             {% endfor %}
         </select>
     </div>

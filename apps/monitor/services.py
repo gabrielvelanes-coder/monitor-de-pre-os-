@@ -246,6 +246,62 @@ def montar_comparativo(
     return linhas
 
 
+def opcoes_filtro_comparativo(classificacao: str | None = None) -> dict:
+    """Listas pros dropdowns de filtro do comparativo -- Monitor de Preço e
+    Itens Relevantes usam exatamente as mesmas (mesmo universo de captação/
+    cadastro), só o resultado final que muda. `subclassificacoes` vem em
+    cascata dentro da `classificacao` escolhida (Gabriel notou que sem
+    isso, escolher "GENÉRICOS" ainda mostrava subclassificação sem
+    relação nenhuma)."""
+    cidades = list(
+        PrecoCaptado.objects.exclude(cidade_busca="")
+        .values_list("cidade_busca", flat=True).distinct().order_by("cidade_busca")
+    )
+    bandeiras = list(
+        PrecoCaptado.objects.filter(rede__tipo="nossa")
+        .values_list("rede__nome", flat=True).distinct().order_by("rede__nome")
+    )
+    classificacoes = list(
+        Produto.objects.exclude(classificacao="")
+        .values_list("classificacao", flat=True).distinct().order_by("classificacao")
+    )
+    subclassificacoes_qs = Produto.objects.exclude(subclassificacao="")
+    if classificacao:
+        subclassificacoes_qs = subclassificacoes_qs.filter(classificacao=classificacao)
+    subclassificacoes = list(
+        subclassificacoes_qs.values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
+    )
+    bairros = list(
+        PrecoCaptado.objects.exclude(bairro="")
+        .values_list("bairro", flat=True).distinct().order_by("bairro")
+    )
+    lojas_com_dado = set(
+        PrecoCaptado.objects.filter(rede__tipo="nossa", loja__isnull=False)
+        .values_list("loja_id", flat=True).distinct()
+    )
+    lojas = [
+        {"id": l.id, "nome": l.nome, "bandeira": l.bandeira, "cidade": l.cidade,
+         "tem_dado": l.id in lojas_com_dado}
+        for l in Loja.objects.filter(ativa=True).order_by("cidade", "nome")
+    ]
+    return {
+        "cidades": cidades, "bandeiras": bandeiras, "classificacoes": classificacoes,
+        "subclassificacoes": subclassificacoes, "bairros": bairros, "lojas": lojas,
+    }
+
+
+def resolver_loja_filtro(loja_id: int | None, lojas: list[dict]) -> tuple[str | None, str | None]:
+    """Loja implica cidade/bandeira -- devolve (cidade, bandeira) da loja
+    escolhida, pra os dropdowns refletirem o filtro de verdade em vez de
+    um valor da URL que `montar_comparativo` vai ignorar (ver bug
+    corrigido nela: cidade/bandeira da URL em conflito com a loja quebrava
+    a comparação inteira em silêncio)."""
+    if not loja_id:
+        return None, None
+    loja = next((l for l in lojas if l["id"] == loja_id), None)
+    return (loja["cidade"], loja["bandeira"]) if loja else (None, None)
+
+
 def carregar_itens_relevantes() -> list[dict]:
     """Lê o `_itens_relevantes.json` gravado por `manage.py
     exportar_itens_relevantes` na pasta do robo_cotacao -- lista dos itens

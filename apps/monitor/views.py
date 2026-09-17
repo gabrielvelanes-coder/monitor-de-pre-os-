@@ -8,13 +8,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.captacao.models import PrecoCaptado
-from apps.lojas.models import Loja
-from apps.produtos.models import Produto
 
 from .services import (
     carregar_itens_relevantes,
     montar_comparativo,
     montar_curvas_quantidade_por_loja,
+    opcoes_filtro_comparativo,
+    resolver_loja_filtro,
     svg_sparkline_quantidade,
 )
 
@@ -62,51 +62,15 @@ def monitor_preco(request):
     link_cartao_mais_caros = f"?{_prefixo}situacao=mais_caro"
     link_cartao_sem_concorrente = f"?{_prefixo}situacao=sem_concorrente"
 
-    cidades = list(
-        PrecoCaptado.objects.exclude(cidade_busca="")
-        .values_list("cidade_busca", flat=True).distinct().order_by("cidade_busca")
-    )
-    bandeiras = list(
-        PrecoCaptado.objects.filter(rede__tipo="nossa")
-        .values_list("rede__nome", flat=True).distinct().order_by("rede__nome")
-    )
-    classificacoes = list(
-        Produto.objects.exclude(classificacao="")
-        .values_list("classificacao", flat=True).distinct().order_by("classificacao")
-    )
-    subclassificacoes_qs = Produto.objects.exclude(subclassificacao="")
-    if classificacao:
-        # cascata: só as subclassificações que existem DENTRO da
-        # classificação escolhida, não a lista inteira do catálogo --
-        # Gabriel notou que escolher "GENÉRICOS" ainda mostrava
-        # "ABSORVENTE"/"BALANÇA"/etc. sem relação nenhuma.
-        subclassificacoes_qs = subclassificacoes_qs.filter(classificacao=classificacao)
-    subclassificacoes = list(
-        subclassificacoes_qs.values_list("subclassificacao", flat=True).distinct().order_by("subclassificacao")
-    )
-    bairros = list(
-        PrecoCaptado.objects.exclude(bairro="")
-        .values_list("bairro", flat=True).distinct().order_by("bairro")
-    )
-    lojas_com_dado = set(
-        PrecoCaptado.objects.filter(rede__tipo="nossa", loja__isnull=False)
-        .values_list("loja_id", flat=True).distinct()
-    )
-    lojas = [
-        {"id": l.id, "nome": l.nome, "bandeira": l.bandeira, "cidade": l.cidade,
-         "tem_dado": l.id in lojas_com_dado}
-        for l in Loja.objects.filter(ativa=True).order_by("cidade", "nome")
-    ]
+    opcoes = opcoes_filtro_comparativo(classificacao)
+    cidades, bandeiras = opcoes["cidades"], opcoes["bandeiras"]
+    classificacoes, subclassificacoes = opcoes["classificacoes"], opcoes["subclassificacoes"]
+    bairros, lojas = opcoes["bairros"], opcoes["lojas"]
 
     loja_id_int = int(loja_id) if loja_id else None
-    if loja_id_int:
-        # a loja já implica cidade/bandeira -- mostra os dropdowns
-        # refletindo a loja de verdade, não um valor da URL que o
-        # serviço vai ignorar (evita a tela "mentir" sobre o filtro
-        # aplicado -- ver bug corrigido em montar_comparativo).
-        loja_escolhida = next((l for l in lojas if l["id"] == loja_id_int), None)
-        if loja_escolhida:
-            cidade, bandeira = loja_escolhida["cidade"], loja_escolhida["bandeira"]
+    cidade_loja, bandeira_loja = resolver_loja_filtro(loja_id_int, lojas)
+    if loja_id_int and cidade_loja:
+        cidade, bandeira = cidade_loja, bandeira_loja
 
     linhas = montar_comparativo(
         cidade=cidade, bandeira=bandeira, classificacao=classificacao,
@@ -179,7 +143,11 @@ def itens_relevantes(request):
     itens que o robô está tratando com prioridade"."""
     cidade = request.GET.get("cidade") or None
     bandeira = request.GET.get("bandeira") or None
+    classificacao = request.GET.get("classificacao") or None
+    subclassificacao = request.GET.get("subclassificacao") or None
     situacao = request.GET.get("situacao") or None
+    loja_id = request.GET.get("loja") or None
+    bairro = request.GET.get("bairro") or None
     detalhe = request.GET.get("detalhe") or None
 
     querystring = request.GET.copy()
@@ -190,20 +158,23 @@ def itens_relevantes(request):
     eans_relevantes = {i["ean"] for i in itens_relevantes_lista}
     info_por_ean = {i["ean"]: i for i in itens_relevantes_lista}
 
-    cidades = list(
-        PrecoCaptado.objects.exclude(cidade_busca="")
-        .values_list("cidade_busca", flat=True).distinct().order_by("cidade_busca")
-    )
-    bandeiras = list(
-        PrecoCaptado.objects.filter(rede__tipo="nossa")
-        .values_list("rede__nome", flat=True).distinct().order_by("rede__nome")
-    )
+    opcoes = opcoes_filtro_comparativo(classificacao)
+    cidades, bandeiras = opcoes["cidades"], opcoes["bandeiras"]
+    classificacoes, subclassificacoes = opcoes["classificacoes"], opcoes["subclassificacoes"]
+    bairros, lojas = opcoes["bairros"], opcoes["lojas"]
+
+    loja_id_int = int(loja_id) if loja_id else None
+    cidade_loja, bandeira_loja = resolver_loja_filtro(loja_id_int, lojas)
+    if loja_id_int and cidade_loja:
+        cidade, bandeira = cidade_loja, bandeira_loja
 
     linhas = []
     eans_com_captacao: set[str] = set()
     if eans_relevantes:
         linhas = montar_comparativo(
-            cidade=cidade, bandeira=bandeira, situacao=situacao, eans=eans_relevantes,
+            cidade=cidade, bandeira=bandeira, classificacao=classificacao,
+            subclassificacao=subclassificacao, situacao=situacao,
+            loja_id=loja_id_int, bairro=bairro, eans=eans_relevantes,
         )
         for l in linhas:
             info = info_por_ean.get(l["ean"], {})
@@ -213,7 +184,9 @@ def itens_relevantes(request):
         # -- mesmo espírito dos cartões do Monitor de Preço, senão filtrar
         # por "mais caro" faria a cobertura parecer pior do que é de verdade.
         linhas_cobertura = linhas if not situacao else montar_comparativo(
-            cidade=cidade, bandeira=bandeira, eans=eans_relevantes,
+            cidade=cidade, bandeira=bandeira, classificacao=classificacao,
+            subclassificacao=subclassificacao, loja_id=loja_id_int, bairro=bairro,
+            eans=eans_relevantes,
         )
         eans_com_captacao = {l["ean"] for l in linhas_cobertura}
 
@@ -229,9 +202,17 @@ def itens_relevantes(request):
         "linhas": linhas,
         "cidades": cidades,
         "bandeiras": bandeiras,
+        "classificacoes": classificacoes,
+        "subclassificacoes": subclassificacoes,
+        "lojas": lojas,
+        "bairros": bairros,
         "cidade_selecionada": cidade,
         "bandeira_selecionada": bandeira,
+        "classificacao_selecionada": classificacao,
+        "subclassificacao_selecionada": subclassificacao,
         "situacao_selecionada": situacao,
+        "loja_selecionada": loja_id_int,
+        "bairro_selecionado": bairro,
         "detalhe_aberto": detalhe,
         "querystring_sem_detalhe": querystring_sem_detalhe,
         "total_relevantes": len(eans_relevantes),
