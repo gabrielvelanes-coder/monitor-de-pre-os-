@@ -165,7 +165,7 @@
                     {{ l.concorrente_mais_barato }}
                     {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
                     <br><span class="dist">
-                        {% if l.distancia_precisa_concorrente %}<span class="dist-precisa"><span class="ponto"></span>{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }}</span> · {% elif l.distancia_km_concorrente == 0 %}<span class="dist-vaga"><span class="ponto"></span>mesma região de {{ l.loja_mais_proxima }} (sem precisão de endereço)</span> · {% endif %}
+                        {% if l.distancia_precisa_concorrente %}<span class="dist-precisa"><span class="ponto"></span>{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }}</span> · {% elif l.distancia_km_concorrente != None %}<span class="dist-vaga"><span class="ponto"></span>mesma região de {{ l.loja_mais_proxima }} (a até 500m, sem precisão de endereço)</span> · {% endif %}
                         {% if l.dias_atras_concorrente != None %}{% if l.dias_atras_concorrente == 0 %}hoje{% else %}há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}{% endif %}
                     </span>
                 {% else %}
@@ -223,7 +223,7 @@
                                     <td class="num">R$ {{ cl.preco }}</td>
                                     <td>
                                         {% if cl.distancia_precisa %}<span class="dist-precisa"><span class="ponto"></span>{{ cl.distancia_km }} km de {{ cl.loja_mais_proxima }}</span>
-                                        {% elif cl.distancia_km == 0 %}<span class="dist-vaga" title="Geocodificação (Nominatim) não resolveu o endereço no nível da rua, só do bairro -- as duas coisas caíram no mesmo ponto no mapa. Não significa que estão coladas de verdade."><span class="ponto"></span>mesma região de {{ cl.loja_mais_proxima }}*</span>
+                                        {% elif cl.distancia_km != None %}<span class="dist-vaga" title="Geocodificação (Nominatim) não resolveu o endereço no nível da rua, só do bairro -- as duas coisas caíram a até 500m uma da outra no mapa. Não significa que estão coladas de verdade."><span class="ponto"></span>mesma região de {{ cl.loja_mais_proxima }}*</span>
                                         {% else %}<span class="dist-precisa"><span class="ponto"></span>{{ cl.distancia_centro }} do centro</span>
                                         {% endif %}
                                     </td>
@@ -233,7 +233,7 @@
                             </tbody>
                         </table>
                         {% if l.tem_distancia_imprecisa %}
-                        <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- não é distância real medida, só indica que caiu na mesma área.</p>
+                        <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- caiu a até 500m (raio definido pra cidade média do interior), não é distância real medida.</p>
                         {% endif %}
                     </div>
                 </div>

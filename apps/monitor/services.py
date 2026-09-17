@@ -34,6 +34,17 @@ def _dias_atras(dt) -> int | None:
     return max(delta.days, 0)
 
 
+# Raio (km) abaixo do qual duas coordenadas contam como "mesma região" em
+# vez de uma distância medida de verdade -- decidido com Gabriel (17/09/26)
+# pra dar um número real ao que antes só acontecia por coincidência exata
+# (Nominatim geocodificando os dois endereços pro MESMO centróide de bairro
+# quando não resolve o nível da rua). 500m porque Itabuna/Ilhéus são
+# cidades médias do interior, não capital -- bairro ali costuma ser bem
+# mais compacto que numa metrópole, então "mesma região" a 500m já é um
+# vizinho de verdade, não só "no mesmo lado da cidade".
+RAIO_MESMA_REGIAO_KM = 0.5
+
+
 def _distancia_km(lat1, lon1, lat2, lon2) -> float | None:
     """Haversine simples (raio da Terra ~6371km) -- sem dependência nova."""
     if None in (lat1, lon1, lat2, lon2):
@@ -194,12 +205,13 @@ def montar_comparativo(
                 # BAIRRO. Resultado: 5 das nossas lojas (e vários
                 # concorrentes) geocodificam pro MESMO ponto exato (bairro
                 # Centro), dando distância 0,0km entre coisas que na
-                # verdade não sabemos a distância real. 0,0km aqui não é
+                # verdade não sabemos a distância real. 0,0km (e qualquer
+                # coisa até RAIO_MESMA_REGIAO_KM, ver constante acima) não é
                 # "estão coladas", é "geocodificação sem precisão pra
                 # medir" -- mostrado à parte, não como se fosse um número
                 # confiável.
                 item["distancia_km"] = km
-                item["distancia_precisa"] = km > 0
+                item["distancia_precisa"] = km > RAIO_MESMA_REGIAO_KM
                 item["loja_mais_proxima"] = nome
             concorrentes_linha.append(item)
         concorrentes_linha.sort(key=lambda x: x["preco"])
