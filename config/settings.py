@@ -23,9 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-0-c$*&rxet&ka-e18vx8zsk$kj)gb4s^eak4nj5tbt!+f#e#ye'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+# IP fixo do PC do Gabriel na rede do escritório — outras pessoas acessam por
+# http://192.168.0.33:8000/. Se o IP mudar (ex: roteador reiniciou), rodar
+# `ipconfig` de novo e atualizar aqui.
+ALLOWED_HOSTS = ['192.168.0.33', 'localhost', '127.0.0.1']
 
 
 # Application definition
