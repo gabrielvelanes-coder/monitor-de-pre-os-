@@ -29,8 +29,14 @@
 
 <form method="post">
     {% csrf_token %}
-    <input type="text" class="campo-busca" data-filtro-tabela="tabela-itens-relevantes" placeholder="Buscar por EAN, descrição...">
-    <div style="margin-bottom:12px;">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+        <input type="text" id="busca-itens-relevantes" class="campo-busca" placeholder="Buscar por EAN, descrição...">
+        <select id="filtro-origem">
+            <option value="">Origem: todas</option>
+            <option value="faturamento">💰 Só faturamento</option>
+            <option value="unidades">📦 Só unidades</option>
+            <option value="ambos">💰📦 Faturamento + Unidades</option>
+        </select>
         <button type="submit">Salvar</button>
     </div>
     <table id="tabela-itens-relevantes" class="tabela-interativa">
@@ -39,7 +45,7 @@
                 <th style="width:40px;"><input type="checkbox" id="marcar-todos" title="Marcar/desmarcar todos os visíveis"></th>
                 <th data-ordenavel>EAN</th>
                 <th data-ordenavel>Descrição</th>
-                <th data-ordenavel>Por quê é candidato</th>
+                <th data-ordenavel>Origem</th>
                 <th class="num" data-ordenavel>Venda (R$)</th>
                 <th class="num" data-ordenavel>Unidades</th>
                 <th>Curva de venda (rede)</th>
@@ -47,7 +53,7 @@
         </thead>
         <tbody>
             {% for l in linhas %}
-            <tr>
+            <tr data-origem="{{ l.origem }}">
                 <td><input type="checkbox" name="selecionado" value="{{ l.ean }}" {% if l.selecionado %}checked{% endif %}></td>
                 <td>{{ l.ean }}</td>
                 <td>{{ l.descricao }}</td>
@@ -73,11 +79,31 @@
     document.getElementById('marcar-todos').addEventListener('change', function () {
         var marcar = this.checked;
         document.querySelectorAll('#tabela-itens-relevantes tbody tr').forEach(function (tr) {
-            if (tr.hidden) return;  // respeita o filtro de busca -- só mexe no que está visível
+            if (tr.hidden) return;  // respeita o filtro de busca/origem -- só mexe no que está visível
             var cb = tr.querySelector('input[type=checkbox]');
             if (cb) cb.checked = marcar;
         });
     });
+
+    // Busca por texto + filtro de origem combinados -- não usa o
+    // data-filtro-tabela genérico (tabela.js) porque esse só sabe aplicar
+    // 1 filtro de texto sozinho; aqui precisa combinar os dois (uma linha
+    // só fica visível quando passa nos DOIS ao mesmo tempo).
+    (function () {
+        var busca = document.getElementById('busca-itens-relevantes');
+        var origem = document.getElementById('filtro-origem');
+        function aplicar() {
+            var termo = busca.value.trim().toLowerCase();
+            var origemEscolhida = origem.value;
+            document.querySelectorAll('#tabela-itens-relevantes tbody tr').forEach(function (tr) {
+                var passaTexto = termo === '' || tr.textContent.toLowerCase().indexOf(termo) !== -1;
+                var passaOrigem = origemEscolhida === '' || tr.dataset.origem === origemEscolhida;
+                tr.hidden = !(passaTexto && passaOrigem);
+            });
+        }
+        busca.addEventListener('input', aplicar);
+        origem.addEventListener('change', aplicar);
+    })();
 </script>
 
 {% endblock %}
