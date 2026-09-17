@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Sum
+from django.db.models import Max, Sum
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -300,6 +300,16 @@ def resolver_loja_filtro(loja_id: int | None, lojas: list[dict]) -> tuple[str | 
         return None, None
     loja = next((l for l in lojas if l["id"] == loja_id), None)
     return (loja["cidade"], loja["bandeira"]) if loja else (None, None)
+
+
+def info_sincronizacao() -> dict:
+    """Há quanto tempo a captação foi sincronizada pela última vez -- usado
+    pela barra "dado mais recente: há N min" no topo do Monitor de Preço e
+    de Itens Relevantes (as duas dependem do mesmo `PrecoCaptado`, então é
+    a mesma informação nas duas telas)."""
+    ultima = PrecoCaptado.objects.aggregate(m=Max("atualizado_em"))["m"]
+    minutos = int((timezone.now() - ultima).total_seconds() // 60) if ultima else None
+    return {"ultima_sincronizacao": ultima, "minutos_desde_sync": minutos}
 
 
 def carregar_itens_relevantes() -> list[dict]:

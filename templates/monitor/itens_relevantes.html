@@ -2,6 +2,28 @@
 {% block titulo %}Itens Relevantes{% endblock %}
 {% block conteudo %}
 
+{% if messages %}
+    <div class="avisos">
+    {% for m in messages %}
+        <div class="aviso aviso-some {% if m.tags == 'error' %}aviso-erro{% endif %}">{{ m }}</div>
+    {% endfor %}
+    </div>
+{% endif %}
+
+<div class="barra-sincronizacao">
+    <span class="dist">
+        {% if minutos_desde_sync == None %}sem sincronização ainda
+        {% elif minutos_desde_sync < 1 %}dado mais recente: agora mesmo
+        {% elif minutos_desde_sync < 60 %}dado mais recente: há {{ minutos_desde_sync }} min
+        {% else %}dado mais recente: há {{ minutos_desde_sync|floatformat:0 }} min ({{ ultima_sincronizacao|date:"d/m H:i" }})
+        {% endif %}
+    </span>
+    <form method="post" action="{% url 'monitor:sincronizar_agora' %}">
+        {% csrf_token %}
+        <button type="submit" class="botao-icone" title="Sincronizar agora">⟳</button>
+    </form>
+</div>
+
 <h2 style="margin-bottom:4px;">🎯 Itens Relevantes</h2>
 <p class="dist" style="margin-bottom:16px;">
     Top itens por faturamento + Top itens por unidades vendidas (união) --

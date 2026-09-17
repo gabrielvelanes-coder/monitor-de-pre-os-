@@ -2,15 +2,12 @@ from io import StringIO
 
 from django.contrib import messages
 from django.core.management import call_command
-from django.db.models import Max
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.utils import timezone
-
-from apps.captacao.models import PrecoCaptado
 
 from .services import (
     carregar_itens_relevantes,
+    info_sincronizacao,
     montar_comparativo,
     montar_curvas_quantidade_por_loja,
     opcoes_filtro_comparativo,
@@ -100,14 +97,8 @@ def monitor_preco(request):
             for nl in linha_detalhe["nossas_lojas"]:
                 nl["tendencia"] = svg_sparkline_quantidade(curvas.get(nl["loja_id"], []))
 
-    ultima_sincronizacao = PrecoCaptado.objects.aggregate(m=Max("atualizado_em"))["m"]
-    minutos_desde_sync = None
-    if ultima_sincronizacao:
-        minutos_desde_sync = int((timezone.now() - ultima_sincronizacao).total_seconds() // 60)
-
     context = {
-        "ultima_sincronizacao": ultima_sincronizacao,
-        "minutos_desde_sync": minutos_desde_sync,
+        **info_sincronizacao(),
         "linhas": linhas,
         "cidades": cidades,
         "bandeiras": bandeiras,
@@ -199,6 +190,7 @@ def itens_relevantes(request):
                 nl["tendencia"] = svg_sparkline_quantidade(curvas.get(nl["loja_id"], []))
 
     context = {
+        **info_sincronizacao(),
         "linhas": linhas,
         "cidades": cidades,
         "bandeiras": bandeiras,
