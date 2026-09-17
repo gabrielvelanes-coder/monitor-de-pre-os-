@@ -87,6 +87,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        # timeout maior (padrão do driver é 5s) -- SQLite só permite 1
+        # escritor por vez; com o servidor rodando e comandos manage.py
+        # avulsos (sincronizar_captacao, exportar_itens_relevantes) às
+        # vezes escrevendo ao mesmo tempo, um "database is locked"
+        # transitório vira erro 500 em vez de só esperar a vez.
+        'OPTIONS': {'timeout': 20},
     }
 }
 
