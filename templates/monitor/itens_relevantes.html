@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block titulo %}Itens Relevantes{% endblock %}
+{% block conteudo %}
+
+<h2 style="margin-bottom:4px;">🎯 Itens Relevantes</h2>
+<p class="dist" style="margin-bottom:16px;">
+    Top itens por faturamento + Top itens por unidades vendidas (união) --
+    são os itens que o robô busca com prioridade todo dia. Aqui é o "como
+    estamos" só neles.
+</p>
+
+{% if not exportado_ainda %}
+    <div class="vazio">
+        Ainda não foi exportada nenhuma lista de itens relevantes.
+        Rode <code>manage.py exportar_itens_relevantes</code> primeiro.
+    </div>
+{% else %}
+
+<div class="cartoes">
+    <div class="cartao">
+        <div class="valor">{{ total_relevantes }}</div>
+        <div class="rotulo">Itens relevantes (Top faturamento + Top unidades)</div>
+    </div>
+    <div class="cartao">
+        <div class="valor">{{ total_com_captacao }} / {{ total_relevantes }}</div>
+        <div class="rotulo">Já com preço de concorrência captado</div>
+        <div class="cobertura-barra">
+            <div style="width: {% widthratio total_com_captacao total_relevantes 100 %}%;"></div>
+        </div>
+    </div>
+</div>
+
+<form class="filtros" method="get">
+    <div>
+        <label for="bandeira">Bandeira</label>
+        <select name="bandeira" id="bandeira">
+            <option value="">Todas</option>
+            {% for b in bandeiras %}
+                <option value="{{ b }}" {% if b == bandeira_selecionada %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="cidade">Cidade</label>
+        <select name="cidade" id="cidade">
+            <option value="">Todas</option>
+            {% for c in cidades %}
+                <option value="{{ c }}" {% if c == cidade_selecionada %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="situacao">Situação</label>
+        <select name="situacao" id="situacao">
+            <option value="">Todos</option>
+            <option value="mais_caro" {% if situacao_selecionada == "mais_caro" %}selected{% endif %}>Mais caro que a concorrência</option>
+            <option value="mais_barato" {% if situacao_selecionada == "mais_barato" %}selected{% endif %}>Mais barato ou igual</option>
+            <option value="sem_concorrente" {% if situacao_selecionada == "sem_concorrente" %}selected{% endif %}>Sem concorrente na região</option>
+        </select>
+    </div>
+    <button type="submit">Filtrar</button>
+</form>
+
+{% if not linhas %}
+    <div class="vazio">Nenhum item relevante com captação ainda pra esse filtro -- o robô está enchendo a fila prioritária aos poucos.</div>
+{% else %}
+<input type="text" class="campo-busca" data-filtro-tabela="tabela-relevantes" placeholder="Buscar por EAN, produto, concorrente...">
+<table id="tabela-relevantes" class="tabela-interativa">
+    <thead>
+        <tr>
+            <th data-ordenavel>EAN</th>
+            <th data-ordenavel>Produto</th>
+            <th data-ordenavel>Por quê é relevante</th>
+            <th data-ordenavel>Cidade</th>
+            <th class="num" data-ordenavel>Nosso preço</th>
+            <th data-ordenavel>Concorrente mais barato</th>
+            <th class="num" data-ordenavel>Preço concorrente</th>
+            <th class="num" data-ordenavel>Diferença</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for l in linhas %}
+        <tr>
+            <td>{{ l.ean }}</td>
+            <td>{{ l.titulo|default:"—" }}</td>
+            <td>
+                {% if l.origem == "ambos" %}<span class="tag ambos">💰 Faturamento + 📦 Unidades</span>
+                {% elif l.origem == "faturamento" %}<span class="tag faturamento">💰 Faturamento</span>
+                {% elif l.origem == "unidades" %}<span class="tag unidades">📦 Unidades</span>
+                {% endif %}
+            </td>
+            <td>{{ l.cidade }}</td>
+            <td class="num">
+                R$ {{ l.nosso_preco }}
+                <br><span class="dist">
+                    {% if l.nossas_lojas|length == 1 %}{{ l.nossas_lojas.0.loja|default:"loja não identificada" }}
+                    {% else %}méd. de {{ l.nossas_lojas|length }} lojas
+                    {% endif %}
+                    {% if l.dias_atras_nosso != None %} · {% if l.dias_atras_nosso == 0 %}hoje{% else %}há {{ l.dias_atras_nosso }} dia{{ l.dias_atras_nosso|pluralize }}{% endif %}{% endif %}
+                </span>
+            </td>
+            <td>
+                {% if l.concorrente_mais_barato %}
+                    {{ l.concorrente_mais_barato }}
+                    {% if l.concorrente_rede and l.concorrente_rede != l.concorrente_mais_barato %}<span class="dist">({{ l.concorrente_rede }})</span>{% endif %}
+                    <br><span class="dist">
+                        {% if l.distancia_precisa_concorrente %}<span class="dist-precisa"><span class="ponto"></span>{{ l.distancia_km_concorrente }} km de {{ l.loja_mais_proxima }}</span> · {% elif l.distancia_km_concorrente == 0 %}<span class="dist-vaga"><span class="ponto"></span>mesma região de {{ l.loja_mais_proxima }} (sem precisão de endereço)</span> · {% endif %}
+                        {% if l.dias_atras_concorrente != None %}{% if l.dias_atras_concorrente == 0 %}hoje{% else %}há {{ l.dias_atras_concorrente }} dia{{ l.dias_atras_concorrente|pluralize }}{% endif %}{% endif %}
+                    </span>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td class="num">{% if l.preco_concorrente %}R$ {{ l.preco_concorrente }}{% else %}—{% endif %}</td>
+            <td class="num">
+                {% if l.diferenca_pct == None %}
+                    <span class="tag neutro">sem dado</span>
+                {% elif l.diferenca_pct > 0 %}
+                    <span class="tag caro">+{{ l.diferenca_pct }}%</span>
+                {% else %}
+                    <span class="tag barato">{{ l.diferenca_pct }}%</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if l.chave == detalhe_aberto %}
+                    <a href="?{{ querystring_sem_detalhe }}">ocultar</a>
+                {% else %}
+                    <a href="?{{ querystring_sem_detalhe }}{% if querystring_sem_detalhe %}&{% endif %}detalhe={{ l.chave|urlencode }}">ver detalhes</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% if l.chave == detalhe_aberto %}
+        <tr class="linha-detalhe">
+            <td colspan="9">
+                <div class="painel-detalhe">
+                    <div>
+                        <h3>Nossas lojas</h3>
+                        <table>
+                            <thead><tr><th>Loja</th><th class="num">Preço</th><th>Bairro</th><th>Coletado</th><th>Qtd. vendida/mês</th></tr></thead>
+                            <tbody>
+                                {% for nl in l.nossas_lojas %}
+                                <tr>
+                                    <td>{{ nl.loja|default:"não identificada" }}</td>
+                                    <td class="num">R$ {{ nl.preco }}</td>
+                                    <td>{{ nl.bairro|default:"—" }}</td>
+                                    <td>{% if nl.dias_atras == 0 %}hoje{% else %}há {{ nl.dias_atras }} dia{{ nl.dias_atras|pluralize }}{% endif %}</td>
+                                    <td>{% if nl.tendencia %}{{ nl.tendencia }}{% else %}<span class="dist">sem dado de venda</span>{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>Concorrentes</h3>
+                        <table>
+                            <thead><tr><th>Rede</th><th>Loja</th><th class="num">Preço</th><th>Distância</th><th>Coletado</th></tr></thead>
+                            <tbody>
+                                {% for cl in l.concorrentes %}
+                                <tr>
+                                    <td>{{ cl.rede }}</td>
+                                    <td>{{ cl.estabelecimento }}{% if cl.bairro %} <span class="dist">({{ cl.bairro }})</span>{% endif %}</td>
+                                    <td class="num">R$ {{ cl.preco }}</td>
+                                    <td>
+                                        {% if cl.distancia_precisa %}<span class="dist-precisa"><span class="ponto"></span>{{ cl.distancia_km }} km de {{ cl.loja_mais_proxima }}</span>
+                                        {% elif cl.distancia_km == 0 %}<span class="dist-vaga" title="Geocodificação (Nominatim) não resolveu o endereço no nível da rua, só do bairro -- as duas coisas caíram no mesmo ponto no mapa. Não significa que estão coladas de verdade."><span class="ponto"></span>mesma região de {{ cl.loja_mais_proxima }}*</span>
+                                        {% else %}<span class="dist-precisa"><span class="ponto"></span>{{ cl.distancia_centro }} do centro</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{% if cl.dias_atras == 0 %}hoje{% else %}há {{ cl.dias_atras }} dia{{ cl.dias_atras|pluralize }}{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if l.tem_distancia_imprecisa %}
+                        <p class="dist">* "mesma região" = a geocodificação não achou o endereço exato, só o bairro -- não é distância real medida, só indica que caiu na mesma área.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endif %}
+
+{% endblock %}

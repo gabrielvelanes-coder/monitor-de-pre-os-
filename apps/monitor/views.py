@@ -11,7 +11,12 @@ from apps.captacao.models import PrecoCaptado
 from apps.lojas.models import Loja
 from apps.produtos.models import Produto
 
-from .services import montar_comparativo, montar_curvas_quantidade_por_loja, svg_sparkline_quantidade
+from .services import (
+    carregar_itens_relevantes,
+    montar_comparativo,
+    montar_curvas_quantidade_por_loja,
+    svg_sparkline_quantidade,
+)
 
 
 def sincronizar_agora(request):
@@ -163,3 +168,74 @@ def monitor_preco(request):
         "sem_comparacao": sum(1 for l in linhas_para_cartoes if l["diferenca_pct"] is None),
     }
     return render(request, "monitor/monitor_preco.html", context)
+
+
+def itens_relevantes(request):
+    """Mesmo comparativo do Monitor de Preço (`montar_comparativo`),
+    filtrado só pros itens mais relevantes em venda (Top faturamento + Top
+    unidades, ver `apps.vendas.services.itens_relevantes` /
+    `manage.py exportar_itens_relevantes`) -- é o que alimenta a fila
+    prioritária do robô, então essa tela é "como estamos de preço nos
+    itens que o robô está tratando com prioridade"."""
+    cidade = request.GET.get("cidade") or None
+    bandeira = request.GET.get("bandeira") or None
+    situacao = request.GET.get("situacao") or None
+    detalhe = request.GET.get("detalhe") or None
+
+    querystring = request.GET.copy()
+    querystring.pop("detalhe", None)
+    querystring_sem_detalhe = querystring.urlencode()
+
+    itens_relevantes_lista = carregar_itens_relevantes()
+    eans_relevantes = {i["ean"] for i in itens_relevantes_lista}
+    info_por_ean = {i["ean"]: i for i in itens_relevantes_lista}
+
+    cidades = list(
+        PrecoCaptado.objects.exclude(cidade_busca="")
+        .values_list("cidade_busca", flat=True).distinct().order_by("cidade_busca")
+    )
+    bandeiras = list(
+        PrecoCaptado.objects.filter(rede__tipo="nossa")
+        .values_list("rede__nome", flat=True).distinct().order_by("rede__nome")
+    )
+
+    linhas = []
+    eans_com_captacao: set[str] = set()
+    if eans_relevantes:
+        linhas = montar_comparativo(
+            cidade=cidade, bandeira=bandeira, situacao=situacao, eans=eans_relevantes,
+        )
+        for l in linhas:
+            info = info_por_ean.get(l["ean"], {})
+            l["origem"] = info.get("origem")
+
+        # cobertura sempre olha o panorama geral (sem o filtro de situação)
+        # -- mesmo espírito dos cartões do Monitor de Preço, senão filtrar
+        # por "mais caro" faria a cobertura parecer pior do que é de verdade.
+        linhas_cobertura = linhas if not situacao else montar_comparativo(
+            cidade=cidade, bandeira=bandeira, eans=eans_relevantes,
+        )
+        eans_com_captacao = {l["ean"] for l in linhas_cobertura}
+
+    if detalhe:
+        linha_detalhe = next((l for l in linhas if l["chave"] == detalhe), None)
+        if linha_detalhe:
+            loja_ids = [nl["loja_id"] for nl in linha_detalhe["nossas_lojas"] if nl["loja_id"]]
+            curvas = montar_curvas_quantidade_por_loja(linha_detalhe["ean"], loja_ids)
+            for nl in linha_detalhe["nossas_lojas"]:
+                nl["tendencia"] = svg_sparkline_quantidade(curvas.get(nl["loja_id"], []))
+
+    context = {
+        "linhas": linhas,
+        "cidades": cidades,
+        "bandeiras": bandeiras,
+        "cidade_selecionada": cidade,
+        "bandeira_selecionada": bandeira,
+        "situacao_selecionada": situacao,
+        "detalhe_aberto": detalhe,
+        "querystring_sem_detalhe": querystring_sem_detalhe,
+        "total_relevantes": len(eans_relevantes),
+        "total_com_captacao": len(eans_com_captacao),
+        "exportado_ainda": bool(itens_relevantes_lista),
+    }
+    return render(request, "monitor/itens_relevantes.html", context)

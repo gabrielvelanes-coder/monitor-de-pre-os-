@@ -4,10 +4,12 @@ ou recomendação de preço, só monitoramento (pedido explícito do Gabriel:
 comparar com o meu")."""
 from __future__ import annotations
 
+import json
 import math
 from collections import Counter, defaultdict
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -52,6 +54,7 @@ def montar_comparativo(
     situacao: str | None = None,  # "mais_caro" | "mais_barato" | None
     loja_id: int | None = None,
     bairro: str | None = None,
+    eans: set[str] | None = None,
 ) -> list[dict]:
     """1 linha por EAN visto em pelo menos 1 das nossas bandeiras, com o
     preço nosso (média das nossas lojas daquela bandeira/cidade -- ou o
@@ -65,7 +68,11 @@ def montar_comparativo(
     daquele EAN/cidade acabam sendo a MESMA loja física (comum hoje, já
     que só 14 das 24 lojas ativas têm captação vinculada). Quando 2+ lojas
     distintas estão envolvidas, o resumo fica sem número (evita distância
-    enganosa) mas o detalhe expandido mostra a distância por loja."""
+    enganosa) mas o detalhe expandido mostra a distância por loja.
+
+    `eans` (opcional): restringe a comparação a um conjunto de EANs --
+    usado pela tela "Itens Relevantes" pra filtrar só os itens mais
+    importantes em venda, sem duplicar toda essa lógica de comparação."""
     nossos_qs = PrecoCaptado.objects.filter(rede__tipo="nossa", preco__isnull=False)
     # rede__ativa=True -- Gabriel pediu (16/09/26) pra ver TODO concorrente
     # captado (não só os 6 curados originais), com opção de marcar/desmarcar
@@ -99,6 +106,9 @@ def montar_comparativo(
     if bairro:
         nossos_qs = nossos_qs.filter(bairro=bairro)
         conc_qs = conc_qs.filter(bairro=bairro)
+    if eans:
+        nossos_qs = nossos_qs.filter(ean__in=eans)
+        conc_qs = conc_qs.filter(ean__in=eans)
 
     nossos_qs = nossos_qs.select_related("rede", "loja")
     conc_qs = conc_qs.select_related("rede")
@@ -234,6 +244,19 @@ def montar_comparativo(
     # mais caro que a concorrência primeiro -- é o que precisa de atenção
     linhas.sort(key=lambda l: (l["diferenca_pct"] is None, -(l["diferenca_pct"] or 0)))
     return linhas
+
+
+def carregar_itens_relevantes() -> list[dict]:
+    """Lê o `_itens_relevantes.json` gravado por `manage.py
+    exportar_itens_relevantes` na pasta do robo_cotacao -- lista dos itens
+    mais relevantes em venda (Top faturamento + Top unidades, união) que
+    alimenta a tela "Itens Relevantes" e a fila prioritária do robô. Vazio
+    se o export nunca rodou ainda (tela mostra "sem dado", não quebra)."""
+    caminho = settings.CAMINHO_ITENS_RELEVANTES_ROBO_COTACAO
+    if not caminho.exists():
+        return []
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f).get("itens", [])
 
 
 def montar_curvas_quantidade_por_loja(ean: str, loja_ids: list[int]) -> dict[int, list[dict]]:

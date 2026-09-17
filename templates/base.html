@@ -17,6 +17,8 @@
             --acento-brilho: rgba(91,141,238,.55); --acento-texto: #061024;
             --vermelho: #ff6b6b; --vermelho-bg: rgba(255,107,107,.14);
             --verde: #4ade80; --verde-bg: rgba(74,222,128,.14);
+            --dourado: #e8b93a; --dourado-bg: rgba(232,185,58,.14);
+            --roxo: #b18cf5; --roxo-bg: rgba(177,140,245,.14);
             --sidebar-w: 230px;
         }
         * { box-sizing: border-box; }
@@ -94,6 +96,11 @@
         .tag.caro { background: var(--vermelho-bg); color: var(--vermelho); }
         .tag.barato { background: var(--verde-bg); color: var(--verde); }
         .tag.neutro { background: var(--superficie2); color: var(--texto-fraco); }
+        .tag.faturamento { background: var(--dourado-bg); color: var(--dourado); }
+        .tag.unidades { background: var(--roxo-bg); color: var(--roxo); }
+        .tag.ambos { background: var(--acento-suave); color: var(--acento); }
+        .cobertura-barra { height: 8px; border-radius: 999px; background: var(--superficie2); overflow: hidden; margin-top: 6px; }
+        .cobertura-barra div { height: 100%; background: var(--acento); }
         .vazio { padding: 40px; text-align: center; color: var(--texto-fraco); }
         .dist { color: var(--texto-fraco); font-size: 12px; }
         .painel-detalhe {
@@ -157,6 +164,7 @@
         <nav>
             <div class="grupo-titulo">Preço</div>
             <a href="{% url 'monitor:monitor_preco' %}" {% if request.resolver_match.url_name == 'monitor_preco' %}class="ativo"{% endif %}>Monitor de Preço</a>
+            <a href="{% url 'monitor:itens_relevantes' %}" {% if request.resolver_match.url_name == 'itens_relevantes' %}class="ativo"{% endif %}>🎯 Itens Relevantes</a>
             <a href="{% url 'captacao:concorrentes' %}" {% if request.resolver_match.url_name == 'concorrentes' %}class="ativo"{% endif %}>Configuração de Concorrentes</a>
             <a href="#" title="Ainda não implementado">Análise de Entradas</a>
 
