@@ -141,7 +141,7 @@
     </thead>
     <tbody>
         {% for l in linhas %}
-        <tr>
+        <tr {% if l.chave == detalhe_aberto %}id="detalhe-aberto"{% endif %}>
             <td>{{ l.ean }}</td>
             <td>{{ l.titulo|default:"—" }}</td>
             <td>

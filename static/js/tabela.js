@@ -79,7 +79,12 @@
     document.querySelectorAll('[data-filtro-tabela]').forEach(function (input) {
       var tabela = document.getElementById(input.dataset.filtroTabela);
       if (!tabela) return;
-      input.addEventListener('input', function () {
+      // Guarda o termo buscado por aba (sessionStorage) pra sobreviver ao
+      // reload que o link "ver detalhes"/"ocultar" causa -- sem isso, cada
+      // clique em "ver detalhes" limpava a busca e voltava a tabela inteira.
+      var chaveBusca = 'monitor-precos:filtro:' + input.dataset.filtroTabela;
+
+      function aplicar() {
         var termo = input.value.trim().toLowerCase();
         var oculta = false;
         Array.prototype.forEach.call(tabela.tBodies[0].rows, function (linha) {
@@ -90,12 +95,29 @@
           oculta = termo !== '' && linha.textContent.toLowerCase().indexOf(termo) === -1;
           linha.hidden = oculta;
         });
+      }
+
+      var termoSalvo = sessionStorage.getItem(chaveBusca);
+      if (termoSalvo) {
+        input.value = termoSalvo;
+        aplicar();
+      }
+
+      input.addEventListener('input', function () {
+        sessionStorage.setItem(chaveBusca, input.value);
+        aplicar();
       });
     });
+  }
+
+  function rolarParaDetalheAberto() {
+    var linha = document.getElementById('detalhe-aberto');
+    if (linha) linha.scrollIntoView({ block: 'center' });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     iniciarOrdenacao();
     iniciarFiltro();
+    rolarParaDetalheAberto();
   });
 })();
