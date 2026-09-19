@@ -12,7 +12,7 @@ from django.core.cache import cache
 from django.db.models import Sum
 
 from apps.produtos.models import Produto
-from apps.vendas.models import SelecaoItemRelevante, VendaItem
+from apps.vendas.models import AjusteItemMonitoramentoDiario, SelecaoItemRelevante, VendaItem
 
 # Relevância e Custo x Margem agregam ~665 mil linhas de VendaItem a cada
 # carregamento -- 37s sem cache (achado 16/09/26, Gabriel reclamou de
@@ -193,13 +193,29 @@ def itens_monitoramento_diario() -> list[dict]:
         l["subclassificacao"] = produto.get("subclassificacao", "")
 
     candidatos = [l for l in linhas if l["ean"] and l["ean"] != "nan"]
+    candidatos_por_ean = {c["ean"]: c for c in candidatos}
+
+    ajustes = list(AjusteItemMonitoramentoDiario.objects.filter(ativo=True))
+    excluidos = {a.ean for a in ajustes if a.tipo == AjusteItemMonitoramentoDiario.EXCLUIR}
+    inclusoes = [a for a in ajustes if a.tipo == AjusteItemMonitoramentoDiario.INCLUIR]
 
     usados: set[str] = set()
     resultado: list[dict] = []
 
     def _selecionar(nome_grupo: str, disponiveis: list[dict], n: int):
-        restantes = [c for c in disponiveis if c["ean"] not in usados]
-        escolhidos = sorted(restantes, key=lambda c: c["itens"] or 0, reverse=True)[:n]
+        # Item excluído não é reposto pelo próximo do ranking -- a vaga
+        # some de propósito (senão o item trocado por escolha do Gabriel
+        # voltaria sozinho via um "parecido" na próxima carga). Só conta
+        # como "vaga perdida" quem de fato estaria no top-N deste grupo
+        # SEM o ajuste (senão uma exclusão de outra categoria, presente
+        # em `disponiveis` só porque esse grupo varre todo mundo -- caso
+        # do "Top geral" -- encolheria um grupo que nem usaria aquele item).
+        ordenados = sorted(disponiveis, key=lambda c: c["itens"] or 0, reverse=True)
+        seria_selecionado = [c for c in ordenados if c["ean"] not in usados][:n]
+        excluidos_do_grupo = sum(1 for c in seria_selecionado if c["ean"] in excluidos)
+        n_efetivo = max(n - excluidos_do_grupo, 0)
+        restantes = [c for c in ordenados if c["ean"] not in usados and c["ean"] not in excluidos]
+        escolhidos = restantes[:n_efetivo]
         for c in escolhidos:
             usados.add(c["ean"])
             resultado.append({
@@ -224,6 +240,25 @@ def itens_monitoramento_diario() -> list[dict]:
         _selecionar(nome_grupo, disponiveis, n)
 
     _selecionar("Top geral (fora das categorias)", candidatos, _VAGAS_TOP_GERAL_MONITORAMENTO_DIARIO)
+
+    for ajuste in inclusoes:
+        if ajuste.ean in usados:
+            continue
+        candidato = candidatos_por_ean.get(ajuste.ean)
+        if candidato:
+            descricao, venda, itens = candidato["descricao"], candidato["venda"] or Decimal("0"), candidato["itens"] or Decimal("0")
+        else:
+            produto = Produto.objects.filter(ean=ajuste.ean).values("descricao").first()
+            descricao, venda, itens = (produto or {}).get("descricao", ajuste.ean), Decimal("0"), Decimal("0")
+        usados.add(ajuste.ean)
+        resultado.append({
+            "ean": ajuste.ean,
+            "descricao": descricao,
+            "categoria": ajuste.categoria or "Ajuste manual",
+            "venda": venda,
+            "itens": itens,
+        })
+
     return resultado
 
 

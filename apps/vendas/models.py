@@ -56,3 +56,36 @@ class SelecaoItemRelevante(models.Model):
 
     def __str__(self):
         return f"{self.ean} ({'selecionado' if self.selecionado else 'ignorado'})"
+
+
+class AjusteItemMonitoramentoDiario(models.Model):
+    """Ajuste manual do Gabriel por cima da lista automática (top de unidades
+    por categoria) de `services.itens_monitoramento_diario` -- pedido
+    19/09/26: ele quer trocar itens específicos por outros de sua escolha,
+    não só aceitar o ranking automático. EXCLUIR tira o EAN da lista (a vaga
+    da categoria NÃO é reposta automaticamente pelo próximo do ranking --
+    encolhe a categoria de propósito, pra não trazer de volta um item
+    parecido escolhido por acaso). INCLUIR força o EAN a entrar na
+    `categoria` indicada, além das vagas automáticas (pode fazer a categoria
+    passar do tamanho padrão)."""
+
+    EXCLUIR = "EXCLUIR"
+    INCLUIR = "INCLUIR"
+    TIPO_CHOICES = [(EXCLUIR, "Excluir"), (INCLUIR, "Incluir")]
+
+    ean = models.CharField(max_length=20, db_index=True)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    categoria = models.CharField(
+        max_length=40, blank=True,
+        help_text="Obrigatório pra INCLUIR (nome exato da categoria, ex. 'Propagado'). Ignorado em EXCLUIR.",
+    )
+    observacao = models.CharField(max_length=200, blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ajuste manual (monitoramento diário)"
+        verbose_name_plural = "Ajustes manuais (monitoramento diário)"
+
+    def __str__(self):
+        return f"{self.tipo} {self.ean} ({self.categoria or '-'})"
