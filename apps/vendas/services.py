@@ -142,6 +142,91 @@ def itens_relevantes(top_n: int = 100) -> list[dict]:
     return resultado
 
 
+# Categorias do monitoramento diário fixo (pedido do Gabriel 19/09/26):
+# nome de exibição -> (classificação exata, subclassificação exata ou None p/
+# pegar a classificação toda, quantas vagas). Fraldas/Leites são
+# subclassificação DENTRO de "MUNDO INFANTIL" no cadastro (confirmado no
+# banco: 'FRALDA INFANTIL'/'LEITE'), então "Mundo Infantil" aqui é o RESTO da
+# classificação, excluindo essas duas, senão o mesmo item apareceria em 2
+# grupos. Ordem importa: cada grupo só pega itens que nenhum grupo anterior
+# já pegou (evita duplicar EAN entre categorias).
+_CATEGORIAS_MONITORAMENTO_DIARIO: list[tuple[str, str, str | None, int]] = [
+    ("Genéricos", "GENÉRICOS", None, 10),
+    ("Similares", "SIMILARES", None, 5),
+    ("Propagado", "PROPAGADO", None, 5),
+    ("Fraldas", "MUNDO INFANTIL", "FRALDA INFANTIL", 5),
+    ("Leites", "MUNDO INFANTIL", "LEITE", 4),
+    ("Mundo Infantil (resto)", "MUNDO INFANTIL", "__resto__", 4),
+]
+# Vagas extra pro top geral por unidades, fora de todas as categorias acima.
+_VAGAS_TOP_GERAL_MONITORAMENTO_DIARIO = 2
+
+
+def itens_monitoramento_diario() -> list[dict]:
+    """Lista FIXA de 35 itens pro monitoramento diário de preço pedido pelo
+    Gabriel (19/09/26): "todo dia ele pesquisa esses itens" pra acompanhar o
+    valor de venda dia a dia -- diferente do `itens_relevantes` (Top 100
+    geral por faturamento/unidades), aqui é Top N por UNIDADES vendidas
+    dentro de categorias específicas escolhidas por ele (10 Genéricos, 5
+    Similares, 5 Propagados, 5 Fraldas, 4 Leites, 4 resto de Mundo Infantil,
+    + 2 top geral fora dessas categorias = 35). Critério "mais vendido" =
+    unidades (não faturamento -- decisão explícita dele, os dois rankings
+    divergem bastante, ver docstring de `itens_relevantes`). Fonte pra
+    `exportar_itens_monitoramento_diario`, que alimenta a fila DIÁRIA
+    (prioridade máxima) do robô -- ver `termos_diarios.py` do lado de lá."""
+    linhas = list(
+        VendaItem.objects.filter(produto__isnull=False)
+        .values("produto_id")
+        .annotate(venda=Sum("venda"), itens=Sum("itens"))
+    )
+    produtos = {
+        p["id"]: p
+        for p in Produto.objects.filter(id__in=[l["produto_id"] for l in linhas]).values(
+            "id", "ean", "descricao", "classificacao", "subclassificacao"
+        )
+    }
+    for l in linhas:
+        produto = produtos.get(l["produto_id"], {})
+        l["ean"] = produto.get("ean", "")
+        l["descricao"] = produto.get("descricao", "")
+        l["classificacao"] = produto.get("classificacao", "")
+        l["subclassificacao"] = produto.get("subclassificacao", "")
+
+    candidatos = [l for l in linhas if l["ean"] and l["ean"] != "nan"]
+
+    usados: set[str] = set()
+    resultado: list[dict] = []
+
+    def _selecionar(nome_grupo: str, disponiveis: list[dict], n: int):
+        restantes = [c for c in disponiveis if c["ean"] not in usados]
+        escolhidos = sorted(restantes, key=lambda c: c["itens"] or 0, reverse=True)[:n]
+        for c in escolhidos:
+            usados.add(c["ean"])
+            resultado.append({
+                "ean": c["ean"],
+                "descricao": c["descricao"],
+                "categoria": nome_grupo,
+                "venda": c["venda"] or Decimal("0"),
+                "itens": c["itens"] or Decimal("0"),
+            })
+
+    for nome_grupo, classificacao, subclassificacao, n in _CATEGORIAS_MONITORAMENTO_DIARIO:
+        if subclassificacao == "__resto__":
+            excluidas = {sub for _, cl, sub, _ in _CATEGORIAS_MONITORAMENTO_DIARIO
+                         if cl == classificacao and sub not in (None, "__resto__")}
+            disponiveis = [c for c in candidatos
+                           if c["classificacao"] == classificacao and c["subclassificacao"] not in excluidas]
+        elif subclassificacao is None:
+            disponiveis = [c for c in candidatos if c["classificacao"] == classificacao]
+        else:
+            disponiveis = [c for c in candidatos
+                            if c["classificacao"] == classificacao and c["subclassificacao"] == subclassificacao]
+        _selecionar(nome_grupo, disponiveis, n)
+
+    _selecionar("Top geral (fora das categorias)", candidatos, _VAGAS_TOP_GERAL_MONITORAMENTO_DIARIO)
+    return resultado
+
+
 def curva_quantidade_agregada(eans: list[str]) -> dict[str, list[dict]]:
     """Quantidade vendida (soma de `itens`) por mês, agregada em TODAS as
     lojas (rede inteira, não por loja individual) -- pedido explícito do

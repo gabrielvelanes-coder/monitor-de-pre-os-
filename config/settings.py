@@ -171,3 +171,9 @@ CAMINHO_DB_ROBO_COTACAO = (
 CAMINHO_ITENS_RELEVANTES_ROBO_COTACAO = (
     BASE_DIR.parent.parent / 'robo_cotacao' / '_itens_relevantes.json'
 )
+
+# Idem, pra lista FIXA de 35 itens do monitoramento diário (pedido do
+# Gabriel 19/09/26) -- ver apps.vendas.services.itens_monitoramento_diario.
+CAMINHO_ITENS_MONITORAMENTO_DIARIO_ROBO_COTACAO = (
+    BASE_DIR.parent.parent / 'robo_cotacao' / '_itens_monitoramento_diario.json'
+)
