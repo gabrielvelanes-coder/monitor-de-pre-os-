@@ -27,10 +27,11 @@ DEBUG = False
 
 # IP do PC do Gabriel na rede do escritório — outras pessoas acessam por
 # http://192.168.100.74:8000/. Já mudou uma vez (roteador reatribuiu via
-# DHCP, 17/09/26: era 192.168.0.33) -- se parar de funcionar de novo,
-# rodar `ipconfig` e atualizar aqui. Vale reservar esse IP no roteador
-# pra não quebrar de novo (oferecido a Gabriel, sem decisão ainda).
-ALLOWED_HOSTS = ['192.168.100.74', 'localhost', '127.0.0.1']
+# DHCP, 19/09/26: era 192.168.100.74, antes 192.168.0.33) -- se parar de
+# funcionar de novo, rodar `ipconfig` e atualizar aqui. Vale reservar esse
+# IP no roteador pra não quebrar de novo (oferecido a Gabriel, sem decisão
+# ainda).
+ALLOWED_HOSTS = ['192.168.0.53', 'localhost', '127.0.0.1']
 
 
 # Application definition
