@@ -7,6 +7,7 @@ from apps.lojas.models import Loja
 
 _REGEX_CEP = re.compile(r"\d{8},")
 _REGEX_NUMERO = re.compile(r"\d+")
+_REGEX_SN = re.compile(r"\bS[./]?N\b", re.IGNORECASE)
 _PREFIXOS_LOGRADOURO = ("AVENIDA ", "AV ", "AV. ", "RUA ", "R ", "R. ", "PRACA ", "PRAÇA ", "PCA ")
 
 
@@ -34,7 +35,15 @@ def _numero_loja(endereco: str) -> str | None:
     em outra posição ('128', '1299', '428A', '32') -- número curto (1-2
     dígitos) virava ambíguo por engano mesmo tendo 1 match exato de
     verdade. Agora extrai o número da loja e compara IGUALDADE, não
-    substring."""
+    substring.
+
+    2º BUG REAL corrigido 20/09/26: Loja 08 tem endereço 'PRAÇA CAIRU, S/N
+    LOJA 02 CENTRO' -- o '02' de "LOJA 02" (identificador interno, não
+    número de rua) era lido como se fosse o número, escondendo que essa
+    loja é S/N de verdade. Agora 'S/N' literal manda: se aparecer, a loja
+    não tem número de rua, não importa que outro dígito sobre no texto."""
+    if _REGEX_SN.search(endereco or ""):
+        return None
     m = _REGEX_NUMERO.search(endereco or "")
     return m.group() if m else None
 
@@ -91,7 +100,7 @@ class Command(BaseCommand):
                 nome = _nome_rua(p.endereco)
                 bateram = [
                     l for l in candidatas
-                    if not _REGEX_NUMERO.search(l.endereco or "") and nome and nome in _nome_rua(l.endereco)
+                    if _numero_loja(l.endereco) is None and nome and nome in _nome_rua(l.endereco)
                 ] if nome else []
 
             if len(bateram) == 1:
