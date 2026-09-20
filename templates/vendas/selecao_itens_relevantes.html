@@ -36,6 +36,7 @@
             <option value="faturamento">💰 Só faturamento</option>
             <option value="unidades">📦 Só unidades</option>
             <option value="ambos">💰📦 Faturamento + Unidades</option>
+            <option value="manual">✋ Adicionado manualmente</option>
         </select>
         <button type="submit">Salvar</button>
     </div>
@@ -61,6 +62,7 @@
                     {% if l.origem == "ambos" %}<span class="tag ambos">💰 Faturamento + 📦 Unidades</span>
                     {% elif l.origem == "faturamento" %}<span class="tag faturamento">💰 Faturamento</span>
                     {% elif l.origem == "unidades" %}<span class="tag unidades">📦 Unidades</span>
+                    {% elif l.origem == "manual" %}<span class="tag manual">✋ Manual</span>
                     {% endif %}
                 </td>
                 <td class="num">R$ {{ l.venda|floatformat:2 }}</td>

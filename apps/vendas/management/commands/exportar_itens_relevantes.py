@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from apps.vendas.services import eans_selecionados_relevantes, itens_relevantes
+from apps.vendas.services import eans_selecionados_relevantes, itens_relevantes_com_manuais
 
 
 class Command(BaseCommand):
@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         top_n = options["top_n"]
-        candidatos = itens_relevantes(top_n=top_n)
+        candidatos = itens_relevantes_com_manuais(top_n=top_n)
         selecionados = eans_selecionados_relevantes([c["ean"] for c in candidatos])
         itens = [c for c in candidatos if c["ean"] in selecionados]
 
@@ -50,8 +50,10 @@ class Command(BaseCommand):
         n_ambos = sum(1 for i in itens if i["origem"] == "ambos")
         n_faturamento = sum(1 for i in itens if i["origem"] == "faturamento")
         n_unidades = sum(1 for i in itens if i["origem"] == "unidades")
+        n_manual = sum(1 for i in itens if i["origem"] == "manual")
         self.stdout.write(self.style.SUCCESS(
             f"{len(itens)} de {len(candidatos)} candidatos selecionados exportados pra {caminho} "
-            f"({n_faturamento} só faturamento, {n_unidades} só unidades, {n_ambos} nos dois). "
+            f"({n_faturamento} só faturamento, {n_unidades} só unidades, {n_ambos} nos dois, "
+            f"{n_manual} adicionados manualmente). "
             f"Ajustar a seleção em 'Selecionar Itens Relevantes' no painel."
         ))

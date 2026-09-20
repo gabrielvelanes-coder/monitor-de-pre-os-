@@ -9,7 +9,7 @@ from .services import (
     curva_quantidade_agregada,
     custo_margem_resumo,
     eans_selecionados_relevantes,
-    itens_relevantes,
+    itens_relevantes_com_manuais,
     relevancia_por_classificacao,
 )
 
@@ -78,7 +78,7 @@ def selecao_itens_relevantes(request):
     "você identifica quais itens são mais relevantes e eu escolho quais
     quero olhar". `manage.py exportar_itens_relevantes` usa só os
     selecionados daqui pra alimentar a fila prioritária do robô."""
-    candidatos = itens_relevantes(top_n=100)
+    candidatos = itens_relevantes_com_manuais(top_n=100)
     eans = [c["ean"] for c in candidatos]
 
     if request.method == "POST":

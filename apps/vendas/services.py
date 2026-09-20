@@ -284,6 +284,43 @@ def curva_quantidade_agregada(eans: list[str]) -> dict[str, list[dict]]:
     return dict(curvas)
 
 
+def itens_relevantes_com_manuais(top_n: int = 100) -> list[dict]:
+    """`itens_relevantes` + itens que Gabriel forçou manualmente pra dentro
+    da tela "Selecionar Itens Relevantes" mesmo fora do Top faturamento/
+    unidades (pedido 20/09/26: itens da fila diária fixa que não entram no
+    top-100 de nenhum dos dois, ex. um item de baixo giro mas que ele quer
+    acompanhar de qualquer forma). Qualquer `SelecaoItemRelevante` cujo EAN
+    não seja um candidato natural conta como forçado -- a existência do
+    registro é o sinal de força, `selecionado` só controla o checkbox."""
+    candidatos = itens_relevantes(top_n)
+    eans_candidatos = {c["ean"] for c in candidatos}
+    manuais_eans = list(
+        SelecaoItemRelevante.objects.exclude(ean__in=eans_candidatos).values_list("ean", flat=True)
+    )
+    if not manuais_eans:
+        return candidatos
+
+    linhas = {
+        l["produto__ean"]: l
+        for l in VendaItem.objects.filter(produto__ean__in=manuais_eans)
+        .values("produto__ean", "produto__descricao")
+        .annotate(venda=Sum("venda"), itens=Sum("itens"))
+    }
+    extras = []
+    for ean in manuais_eans:
+        l = linhas.get(ean)
+        if l:
+            venda, itens, descricao = l["venda"] or Decimal("0"), l["itens"] or Decimal("0"), l["produto__descricao"]
+        else:
+            produto = Produto.objects.filter(ean=ean).values("descricao").first()
+            venda, itens, descricao = Decimal("0"), Decimal("0"), (produto or {}).get("descricao", ean)
+        extras.append({"ean": ean, "descricao": descricao, "venda": venda, "itens": itens, "origem": "manual"})
+
+    resultado = candidatos + extras
+    resultado.sort(key=lambda i: i["venda"], reverse=True)
+    return resultado
+
+
 def eans_selecionados_relevantes(eans_candidatos: list[str]) -> set[str]:
     """Dos candidatos sugeridos, quais Gabriel decidiu acompanhar de
     verdade (tela "Selecionar Itens Relevantes") -- sem registro ainda
