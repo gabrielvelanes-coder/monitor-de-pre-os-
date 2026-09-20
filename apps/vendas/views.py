@@ -36,6 +36,7 @@ def relevancia(request):
             "n_itens": len(itens),
             "n_relevantes": len(relevantes),
             "top_item": itens[0]["descricao"] if itens else "",
+            "top_item_unidades": max(itens, key=lambda i: i["itens"])["descricao"] if itens else "",
         })
     resumo.sort(key=lambda r: r["venda_total"], reverse=True)
 

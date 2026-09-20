@@ -62,7 +62,7 @@
     </div>
     <table>
         <thead>
-            <tr><th>Classificação</th><th class="num">Venda total</th><th class="num">Itens</th><th class="num">Relevantes</th><th>Item que mais vende</th></tr>
+            <tr><th>Classificação</th><th class="num">Venda total</th><th class="num">Itens</th><th class="num">Relevantes</th><th>Item que mais vende (R$)</th><th>Item que mais vende (unidades)</th></tr>
         </thead>
         <tbody>
             {% for r in resumo %}
@@ -72,6 +72,7 @@
                 <td class="num">{{ r.n_itens }}</td>
                 <td class="num">{{ r.n_relevantes }}</td>
                 <td>{{ r.top_item }}</td>
+                <td>{{ r.top_item_unidades }}</td>
             </tr>
             {% endfor %}
         </tbody>
